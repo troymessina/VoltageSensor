@@ -1,0 +1,30 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "project": ["src/**/*.ts!", "scripts/**/*.{ts,js,mjs,cjs}", "tests/**/*.ts", "*.{ts,js,mjs,cjs}"],
+  "entry": [],
+  "ignoreFiles": [],
+  "ignoreDependencies": ["@swc/core"],
+  "ignoreUnresolved": ["./.dependency-cruiser.local.cjs"],
+  "ignoreBinaries": ["vite!"],
+  "includeEntryExports": true,
+  "treatConfigHintsAsErrors": true,
+  "include": [
+    "files",
+    "subpaths",
+    "dependencies",
+    "unlisted",
+    "binaries",
+    "unresolved",
+    "exports",
+    "types",
+    "enumMembers",
+    "namespaceMembers",
+    "duplicates",
+    "catalog",
+    "catalogReferences",
+    "cycles"
+  ],
+  "rules": {
+    "cycles": "error"
+  }
+}

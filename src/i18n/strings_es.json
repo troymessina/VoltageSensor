@@ -1,0 +1,127 @@
+{
+  "title": "Sensor de voltaje",
+  "screens": {
+    "meter": "Voltímetro",
+    "recorder": "Voltaje en función del tiempo"
+  },
+  "showGraph": "Mostrar gráfica",
+  "showTable": "Mostrar tabla",
+  "axes": {
+    "time": "Tiempo",
+    "voltage": "Voltaje"
+  },
+  "run": {
+    "record": "Grabar",
+    "stop": "Detener",
+    "clear": "Borrar",
+    "sampleRate": "Frecuencia de registro",
+    "sampleRatePattern": "{{rate}} Hz",
+    "elapsedPattern": "{{time}} s",
+    "connectFirst": "Conecta un sensor para grabar",
+    "waitingForReading": "Esperando la primera lectura del sensor."
+  },
+  "graph": {
+    "vs": "vs",
+    "vsPaddedPattern": " {{vs}} ",
+    "leadingAxisPattern": "({{name}}",
+    "trailingAxisPattern": "{{name}})",
+    "titlePattern": "({{y}} {{vs}} {{x}})",
+    "xAxis": "Eje horizontal",
+    "yAxis": "Eje vertical",
+    "rescale": "Ajustar los ejes a los datos",
+    "zoomIn": "Acercar en ambos ejes",
+    "zoomOut": "Alejar en ambos ejes",
+    "zoomInX": "Acercar en el eje horizontal",
+    "zoomOutX": "Alejar en el eje horizontal",
+    "zoomInY": "Acercar en el eje vertical",
+    "zoomOutY": "Alejar en el eje vertical",
+    "panLeft": "Desplazar a la izquierda",
+    "panRight": "Desplazar a la derecha",
+    "panUp": "Desplazar hacia arriba",
+    "panDown": "Desplazar hacia abajo",
+    "xAxisChanged": "El eje horizontal ahora es {{property}}.",
+    "yAxisChanged": "El eje vertical ahora es {{property}}."
+  },
+  "table": {
+    "columnA": "Primera columna",
+    "columnB": "Segunda columna",
+    "download": "Descargar CSV",
+    "rowsPattern": "Filas {{first}}–{{last}} de {{total}}",
+    "empty": "Aún no hay datos grabados",
+    "scrollUp": "Desplazar la tabla hacia arriba",
+    "scrollDown": "Desplazar la tabla hacia abajo",
+    "headerPattern": "{{name}} ({{unit}})"
+  },
+  "meter": {
+    "unit": "V",
+    "noReading": "– – –",
+    "rangePattern": "Rango ±{{range}} V",
+    "connectHint": "Conecta un sensor de voltaje inalámbrico PASCO para medir el voltaje."
+  },
+  "sensor": {
+    "connectBluetooth": "Conectar por Bluetooth",
+    "connectUsb": "Conectar por USB",
+    "disconnect": "Desconectar",
+    "statusDisconnected": "Desconectado",
+    "statusConnecting": "Conectando…",
+    "statusConnected": "Conectado",
+    "statusError": "Problema de conexión",
+    "lostConnection": "El sensor se desconectó.",
+    "unavailableInsecure": "Conectar el sensor requiere una página segura. Abre esta aplicación por HTTPS o en localhost.",
+    "unavailableBrowser": "Este navegador no puede conectarse al sensor. Usa Chrome, Edge u Opera.",
+    "rangeNotConfirmed": "El sensor no confirmó el rango. Las lecturas suponen que está en el rango elegido abajo.",
+    "rawVoltagePattern": "Sensor: {{voltage}} V"
+  },
+  "sensorOptions": {
+    "title": "Opciones del sensor",
+    "changeSign": "Cambiar signo",
+    "zeroAtStart": "Poner a cero al inicio de cada grabación",
+    "zeroNow": "Poner a cero ahora",
+    "removeZero": "Quitar el ajuste de cero",
+    "range": "Rango",
+    "range5": "±5 V",
+    "range15": "±15 V",
+    "offsetPattern": "Ajuste de cero: {{offset}} V"
+  },
+  "preferences": {
+    "title": "Simulación",
+    "showDiagnostics": "Mostrar diagnóstico del sensor"
+  },
+  "a11y": {
+    "sensorControls": {
+      "connectBluetoothButton": "Conectar a un sensor de voltaje inalámbrico PASCO por Bluetooth",
+      "connectUsbButton": "Conectar a un sensor de voltaje PASCO enchufado por USB",
+      "disconnectButton": "Desconectar el sensor de voltaje"
+    },
+    "meter": {
+      "screenSummary": {
+        "playArea": "El área de juego muestra un voltímetro con una aguja y una lectura digital del voltaje que mide el sensor.",
+        "controlArea": "El área de control tiene el panel de conexión del sensor, el panel de opciones del sensor con el selector de rango, y un botón Restablecer todo.",
+        "interactionHint": "Conecta el sensor, luego coloca sus puntas en los extremos de una pila o un componente y lee el voltaje."
+      },
+      "currentDetails": {
+        "readingPattern": "El voltímetro marca {{voltage}} voltios en el rango de más o menos {{range}} voltios.",
+        "awaitingReading": "Conectado. Esperando la primera lectura.",
+        "waitingForSensor": "Esperando que se conecte un sensor de voltaje."
+      }
+    },
+    "recorder": {
+      "screenSummary": {
+        "playArea": "El área de juego muestra una gráfica del voltaje en función del tiempo que puedes acercar, desplazar y redimensionar, y una tabla opcional de los valores grabados.",
+        "controlArea": "El área de control tiene las casillas mostrar gráfica y mostrar tabla, los botones grabar, detener y borrar, el selector de frecuencia de registro, el panel de conexión del sensor, el panel de opciones del sensor y un botón Restablecer todo.",
+        "interactionHint": "Conecta el sensor, elige una frecuencia de registro, pulsa Grabar y observa cómo la gráfica dibuja el voltaje en el tiempo."
+      },
+      "currentDetails": {
+        "ready": "Listo para grabar. Aún no se ha grabado nada.",
+        "recording": "Grabando. {{time}} segundos hasta ahora.",
+        "stopped": "Grabación detenida después de {{time}} segundos.",
+        "waitingForSensor": "Esperando que se conecte un sensor de voltaje."
+      },
+      "controls": {
+        "recordButton": "Empezar a grabar",
+        "stopButton": "Detener la grabación",
+        "clearButton": "Borrar el voltaje grabado"
+      }
+    }
+  }
+}

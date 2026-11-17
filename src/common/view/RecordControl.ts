@@ -1,0 +1,200 @@
+import { RECORD_CONTROL_SETTINGS } from "../../VoltageSensorConstants.js";
+/**
+ * RecordControl.ts
+ *
+ * Record, Stop, Clear, and the elapsed-time readout.
+ *
+ * Record and Stop are two separate buttons that swap places rather than one
+ * button that changes its label. A control whose accessible name changes under
+ * the user is disorienting, and a student reaching for "Stop" should not find it
+ * where "Record" was a moment ago and press the wrong thing.
+ *
+ * Clear stays visible but disabled while there is nothing to clear, so the
+ * control set does not reflow as the recording moves through its states.
+ *
+ * The sample-rate chooser lives here rather than in a panel of its own because
+ * it is a property of the recording, not of the display. It is disabled while a
+ * recording runs: the rate is captured when Record is pressed, and a control
+ * that appears to work but changes nothing until next time is worse than one
+ * that plainly cannot be used yet.
+ */
+
+import { DerivedProperty, PatternStringProperty } from "scenerystack/axon";
+import { toFixed } from "scenerystack/dot";
+import { HBox, type Node, RichText, Text, VBox } from "scenerystack/scenery";
+import { PhetFont } from "scenerystack/scenery-phet";
+import { ComboBox, RectangularPushButton } from "scenerystack/sun";
+import { FLAT_PANEL_PUSH_BUTTON_OPTIONS, LIGHT_SURFACE_TEXT_FILL } from "../../common/VoltageSensorButtonOptions.js";
+import { VoltageSensorPanel } from "../../common/VoltageSensorPanel.js";
+import type { RecorderA11yStrings } from "../../i18n/StringManager.js";
+import { StringManager } from "../../i18n/StringManager.js";
+import VoltageSensorColors from "../../VoltageSensorColors.js";
+import { CONTROL_PANEL_WIDTH, SAMPLE_RATE_CHOICES_HZ } from "../../VoltageSensorConstants.js";
+import { RunState } from "../model/RunState.js";
+import type { VoltageRecorderModel } from "../model/VoltageRecorderModel.js";
+
+const BUTTON_FONT = new PhetFont(RECORD_CONTROL_SETTINGS.BUTTON_FONT_SIZE);
+const LABEL_FONT = new PhetFont(RECORD_CONTROL_SETTINGS.LABEL_FONT_SIZE);
+const TIME_FONT = new PhetFont({ size: RECORD_CONTROL_SETTINGS.TIME_FONT_SIZE, weight: "bold" });
+const MESSAGE_FONT = new PhetFont(RECORD_CONTROL_SETTINGS.MESSAGE_FONT_SIZE);
+
+/** Decimal places on the elapsed-time readout — one tenth of a second is legible; two is noise. */
+const TIME_DECIMALS = 1;
+
+export class RecordControl extends VoltageSensorPanel {
+  /** Exposed so the ScreenView can order them in the PDOM. */
+  public readonly recordButton: RectangularPushButton;
+  public readonly stopButton: RectangularPushButton;
+  public readonly clearButton: RectangularPushButton;
+  public readonly sampleRateComboBox: ComboBox<number>;
+
+  private readonly disposeRecordControl: () => void;
+
+  /** @param listParent - where the sample-rate combo box's popup goes, above everything else */
+  public constructor(model: VoltageRecorderModel, a11y: RecorderA11yStrings, listParent: Node) {
+    const runStrings = StringManager.getInstance().getRunStrings();
+
+    const isRecordingProperty = new DerivedProperty([model.runStateProperty], (state) => state === RunState.RECORDING);
+    const isIdleProperty = new DerivedProperty([model.runStateProperty], (state) => state !== RunState.RECORDING);
+    const hasRecordingProperty = new DerivedProperty([model.runStateProperty], (state) => state === RunState.STOPPED);
+
+    const recordButton = new RectangularPushButton({
+      ...FLAT_PANEL_PUSH_BUTTON_OPTIONS,
+      content: new Text(runStrings.recordStringProperty, { font: BUTTON_FONT, fill: LIGHT_SURFACE_TEXT_FILL }),
+      listener: () => model.startRecording(),
+      accessibleName: a11y.controls.recordButtonStringProperty,
+      visibleProperty: isIdleProperty,
+      enabledProperty: model.canRecordProperty,
+    });
+
+    const stopButton = new RectangularPushButton({
+      ...FLAT_PANEL_PUSH_BUTTON_OPTIONS,
+      content: new Text(runStrings.stopStringProperty, { font: BUTTON_FONT, fill: LIGHT_SURFACE_TEXT_FILL }),
+      listener: () => model.stopRecording(),
+      accessibleName: a11y.controls.stopButtonStringProperty,
+      visibleProperty: isRecordingProperty,
+    });
+
+    const clearButton = new RectangularPushButton({
+      ...FLAT_PANEL_PUSH_BUTTON_OPTIONS,
+      content: new Text(runStrings.clearStringProperty, { font: BUTTON_FONT, fill: LIGHT_SURFACE_TEXT_FILL }),
+      listener: () => model.clearRun(),
+      accessibleName: a11y.controls.clearButtonStringProperty,
+      enabledProperty: hasRecordingProperty,
+    });
+
+    // One item per allowed rate, each label built from the same "{{rate}} Hz"
+    // pattern so a locale that writes units differently only has to say so once.
+    const rateLabelProperties: { dispose(): void }[] = [];
+    const rateItems = SAMPLE_RATE_CHOICES_HZ.map((rate) => {
+      const labelProperty = new PatternStringProperty(runStrings.sampleRatePatternStringProperty, { rate: rate });
+      rateLabelProperties.push(labelProperty);
+      return {
+        value: rate,
+        createNode: () => new Text(labelProperty, { font: LABEL_FONT, fill: VoltageSensorColors.textColorProperty }),
+      };
+    });
+    const sampleRateComboBox = new ComboBox(model.sampleRateProperty, rateItems, listParent, {
+      cornerRadius: RECORD_CONTROL_SETTINGS.SAMPLE_RATE_COMBO_BOX_CORNER_RADIUS,
+      xMargin: RECORD_CONTROL_SETTINGS.SAMPLE_RATE_COMBO_BOX_X_MARGIN,
+      yMargin: RECORD_CONTROL_SETTINGS.SAMPLE_RATE_COMBO_BOX_Y_MARGIN,
+      buttonFill: VoltageSensorColors.panelBackgroundColorProperty,
+      buttonStroke: VoltageSensorColors.panelBorderColorProperty,
+      listFill: VoltageSensorColors.panelBackgroundColorProperty,
+      listStroke: VoltageSensorColors.panelBorderColorProperty,
+      highlightFill: VoltageSensorColors.panelBorderColorProperty,
+      accessibleName: runStrings.sampleRateStringProperty,
+      enabledProperty: isIdleProperty,
+    });
+    const sampleRateRow = new HBox({
+      spacing: RECORD_CONTROL_SETTINGS.SAMPLE_RATE_ROW_SPACING,
+      children: [
+        new Text(runStrings.sampleRateStringProperty, {
+          font: LABEL_FONT,
+          fill: VoltageSensorColors.textColorProperty,
+          maxWidth: CONTROL_PANEL_WIDTH - RECORD_CONTROL_SETTINGS.SAMPLE_RATE_ROW_MAX_WIDTH_OFFSET,
+        }),
+        sampleRateComboBox,
+      ],
+    });
+
+    // The readout carries its unit, so the number is never alone on screen.
+    const elapsedValueProperty = new DerivedProperty([model.timeProperty], (time) => toFixed(time, TIME_DECIMALS));
+    const elapsedProperty = new PatternStringProperty(runStrings.elapsedPatternStringProperty, {
+      time: elapsedValueProperty,
+    });
+    const elapsedText = new Text(elapsedProperty, {
+      font: TIME_FONT,
+      fill: VoltageSensorColors.accentColorProperty,
+      maxWidth: CONTROL_PANEL_WIDTH - RECORD_CONTROL_SETTINGS.ELAPSED_TEXT_MAX_WIDTH_OFFSET,
+    });
+
+    // Recording can be unavailable for only one reason:
+    // nothing is connected yet. Saying so beats a disabled button with no
+    // explanation.
+    const needsSensorProperty = new DerivedProperty([model.source.isAvailableProperty], (available) => !available);
+    const connectFirstText = new RichText(runStrings.connectFirstStringProperty, {
+      font: MESSAGE_FONT,
+      fill: VoltageSensorColors.textColorProperty,
+      visibleProperty: needsSensorProperty,
+      align: "center",
+      lineWrap: CONTROL_PANEL_WIDTH - RECORD_CONTROL_SETTINGS.CONNECT_FIRST_TEXT_LINE_WRAP_OFFSET,
+    });
+
+    // A recording's clock starts at the sensor's first reading. Without this
+    // the readout could sit at 0.0 s under a Stop button and look broken.
+    const waitingText = new RichText(runStrings.waitingForReadingStringProperty, {
+      font: MESSAGE_FONT,
+      fill: VoltageSensorColors.textColorProperty,
+      visibleProperty: model.awaitingFirstReadingProperty,
+      align: "center",
+      lineWrap: CONTROL_PANEL_WIDTH - RECORD_CONTROL_SETTINGS.WAITING_TEXT_LINE_WRAP_OFFSET,
+    });
+
+    super(
+      new VBox({
+        align: "center",
+        spacing: RECORD_CONTROL_SETTINGS.CONSTRUCTOR_SPACING,
+        preferredWidth: CONTROL_PANEL_WIDTH - 24,
+        stretch: false,
+        children: [
+          elapsedText,
+          new HBox({
+            spacing: RECORD_CONTROL_SETTINGS.CONSTRUCTOR_SPACING,
+            children: [recordButton, stopButton, clearButton],
+          }),
+          sampleRateRow,
+          connectFirstText,
+          waitingText,
+        ],
+      }),
+      { minWidth: CONTROL_PANEL_WIDTH },
+    );
+
+    this.recordButton = recordButton;
+    this.stopButton = stopButton;
+    this.clearButton = clearButton;
+
+    this.sampleRateComboBox = sampleRateComboBox;
+
+    this.disposeRecordControl = () => {
+      sampleRateComboBox.dispose();
+      for (const property of [
+        isRecordingProperty,
+        isIdleProperty,
+        hasRecordingProperty,
+        elapsedProperty,
+        elapsedValueProperty,
+        needsSensorProperty,
+        ...rateLabelProperties,
+      ]) {
+        property.dispose();
+      }
+    };
+  }
+
+  public override dispose(): void {
+    this.disposeRecordControl();
+    super.dispose();
+  }
+}

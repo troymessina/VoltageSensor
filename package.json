@@ -1,0 +1,90 @@
+{
+  "name": "voltage-sensor",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Read a PASCO Wireless Voltage Sensor (PS-3211) over Web Bluetooth or USB: a live voltmeter, and a voltage-vs-time recorder with an adjustable rate and a zoomable graph.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/troymessina/VoltageSensor.git"
+  },
+  "keywords": [
+    "SceneryStack",
+    "physics",
+    "education",
+    "electricity",
+    "voltage",
+    "voltmeter",
+    "graphing",
+    "data-logging",
+    "web-bluetooth",
+    "webusb",
+    "pasco",
+    "pwa"
+  ],
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:single": "tsc && vite build --mode single",
+    "preview": "vite preview",
+    "lint": "biome check --error-on-warnings .",
+    "format": "biome format --write .",
+    "fix": "biome check --write .",
+    "check": "tsc --noEmit && tsc -p tsconfig.scripts.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "check:unused": "knip",
+    "check:architecture": "depcruise src",
+    "release": "npm run check && npm run lint && npm run check:architecture && npm run build && npm test && npm version patch && git push && git push --tags",
+    "watch": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:fuzz": "node scripts/test-fuzz.ts",
+    "test:fuzz:quick": "node scripts/test-fuzz.ts 10",
+    "test:fuzz:long": "node scripts/test-fuzz.ts 300",
+    "test:soak": "npx playwright test tests/browser/memory-soak.spec.ts",
+    "icons": "node scripts/generate-icons.ts",
+    "clean": "rm -rf dist",
+    "prepare": "test \"$(git rev-parse --show-toplevel 2>/dev/null)\" = \"$PWD\" && git config core.hooksPath .githooks || true",
+    "knip": "knip",
+    "test:architecture": "node --test tests/*.node-test.ts"
+  },
+  "dependencies": {
+    "scenerystack": "^3.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.7",
+    "@playwright/test": "^1.65.0",
+    "@swc/core": "^1.15.3",
+    "@types/node": "^26.6.6",
+    "@types/w3c-web-usb": "^1.0.14",
+    "@types/web-bluetooth": "^0.0.22",
+    "dependency-cruiser": "^18.7.2",
+    "happy-dom": "^21.0.4",
+    "knip": "^6.45.1",
+    "png-to-ico": "^3.0.2",
+    "sharp": "^0.35.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "overrides": {
+    "lodash": "~4.18.1",
+    "three": "~0.125.2",
+    "brace-expansion": "~5.0.12"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=24",
+      "onFail": "error"
+    }
+  },
+  "allowScripts": {
+    "@swc/core@1.16.22": true
+  }
+}

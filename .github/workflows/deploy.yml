@@ -1,0 +1,65 @@
+name: Deploy
+
+# Builds the app and publishes it to GitHub Pages at
+# https://troymessina.github.io/VoltageSensor/
+#
+# A standalone copy of OpenLyceum/Baton's reusable deploy workflow (which the
+# example sims call), so this repository does not depend on that organization.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "26"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Also publish the self-contained single-file build (one HTML file, for
+      # opening from disk or uploading to an LMS) at <Pages URL>/VoltageSensor-single.html.
+      # Must run AFTER the normal build, so the PWA precache does not pick it up.
+      - name: Add single-file build
+        continue-on-error: true
+        env:
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          npm run build:single -- --outDir "$RUNNER_TEMP/single" --emptyOutDir
+          cp "$RUNNER_TEMP/single/index.html" "dist/$REPO-single.html"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6.0.0
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5.0.1

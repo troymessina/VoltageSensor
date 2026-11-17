@@ -1,0 +1,127 @@
+{
+  "title": "Capteur de tension",
+  "screens": {
+    "meter": "Voltmètre",
+    "recorder": "Tension en fonction du temps"
+  },
+  "showGraph": "Afficher le graphique",
+  "showTable": "Afficher le tableau",
+  "axes": {
+    "time": "Temps",
+    "voltage": "Tension"
+  },
+  "run": {
+    "record": "Enregistrer",
+    "stop": "Arrêter",
+    "clear": "Effacer",
+    "sampleRate": "Fréquence d'enregistrement",
+    "sampleRatePattern": "{{rate}} Hz",
+    "elapsedPattern": "{{time}} s",
+    "connectFirst": "Connectez un capteur pour enregistrer",
+    "waitingForReading": "En attente de la première mesure du capteur."
+  },
+  "graph": {
+    "vs": "en fonction de",
+    "vsPaddedPattern": " {{vs}} ",
+    "leadingAxisPattern": "({{name}}",
+    "trailingAxisPattern": "{{name}})",
+    "titlePattern": "({{y}} {{vs}} {{x}})",
+    "xAxis": "Axe horizontal",
+    "yAxis": "Axe vertical",
+    "rescale": "Ajuster les axes aux données",
+    "zoomIn": "Zoom avant sur les deux axes",
+    "zoomOut": "Zoom arrière sur les deux axes",
+    "zoomInX": "Zoom avant sur l'axe horizontal",
+    "zoomOutX": "Zoom arrière sur l'axe horizontal",
+    "zoomInY": "Zoom avant sur l'axe vertical",
+    "zoomOutY": "Zoom arrière sur l'axe vertical",
+    "panLeft": "Déplacer vers la gauche",
+    "panRight": "Déplacer vers la droite",
+    "panUp": "Déplacer vers le haut",
+    "panDown": "Déplacer vers le bas",
+    "xAxisChanged": "L'axe horizontal est maintenant {{property}}.",
+    "yAxisChanged": "L'axe vertical est maintenant {{property}}."
+  },
+  "table": {
+    "columnA": "Première colonne",
+    "columnB": "Deuxième colonne",
+    "download": "Télécharger en CSV",
+    "rowsPattern": "Lignes {{first}}–{{last}} sur {{total}}",
+    "empty": "Aucune donnée enregistrée",
+    "scrollUp": "Faire défiler le tableau vers le haut",
+    "scrollDown": "Faire défiler le tableau vers le bas",
+    "headerPattern": "{{name}} ({{unit}})"
+  },
+  "meter": {
+    "unit": "V",
+    "noReading": "– – –",
+    "rangePattern": "Calibre ±{{range}} V",
+    "connectHint": "Connectez un capteur de tension sans fil PASCO pour mesurer la tension."
+  },
+  "sensor": {
+    "connectBluetooth": "Connecter par Bluetooth",
+    "connectUsb": "Connecter par USB",
+    "disconnect": "Déconnecter",
+    "statusDisconnected": "Déconnecté",
+    "statusConnecting": "Connexion…",
+    "statusConnected": "Connecté",
+    "statusError": "Problème de connexion",
+    "lostConnection": "Le capteur s'est déconnecté.",
+    "unavailableInsecure": "La connexion au capteur exige une page sécurisée. Ouvrez cette application en HTTPS ou sur localhost.",
+    "unavailableBrowser": "Ce navigateur ne peut pas se connecter au capteur. Utilisez Chrome, Edge ou Opera.",
+    "rangeNotConfirmed": "Le capteur n'a pas confirmé le calibre. Les mesures supposent qu'il est réglé sur le calibre choisi ci-dessous.",
+    "rawVoltagePattern": "Capteur : {{voltage}} V"
+  },
+  "sensorOptions": {
+    "title": "Options du capteur",
+    "changeSign": "Inverser le signe",
+    "zeroAtStart": "Mettre à zéro au début de chaque enregistrement",
+    "zeroNow": "Mettre à zéro maintenant",
+    "removeZero": "Supprimer le décalage du zéro",
+    "range": "Calibre",
+    "range5": "±5 V",
+    "range15": "±15 V",
+    "offsetPattern": "Décalage du zéro : {{offset}} V"
+  },
+  "preferences": {
+    "title": "Simulation",
+    "showDiagnostics": "Afficher les diagnostics du capteur"
+  },
+  "a11y": {
+    "sensorControls": {
+      "connectBluetoothButton": "Se connecter à un capteur de tension sans fil PASCO par Bluetooth",
+      "connectUsbButton": "Se connecter à un capteur de tension PASCO branché en USB",
+      "disconnectButton": "Déconnecter le capteur de tension"
+    },
+    "meter": {
+      "screenSummary": {
+        "playArea": "La zone de jeu montre un voltmètre avec un cadran à aiguille et un affichage numérique de la tension mesurée par le capteur.",
+        "controlArea": "La zone de commande contient le panneau de connexion du capteur, le panneau des options du capteur avec le choix du calibre, et un bouton Tout réinitialiser.",
+        "interactionHint": "Connectez le capteur, puis placez ses bornes aux bornes d'une pile ou d'un composant et lisez la tension."
+      },
+      "currentDetails": {
+        "readingPattern": "Le voltmètre indique {{voltage}} volts sur le calibre plus ou moins {{range}} volts.",
+        "awaitingReading": "Connecté. En attente de la première mesure.",
+        "waitingForSensor": "En attente de la connexion d'un capteur de tension."
+      }
+    },
+    "recorder": {
+      "screenSummary": {
+        "playArea": "La zone de jeu montre un graphique de la tension en fonction du temps, que vous pouvez agrandir, déplacer et redimensionner, ainsi qu'un tableau facultatif des valeurs enregistrées.",
+        "controlArea": "La zone de commande contient les cases afficher le graphique et afficher le tableau, les boutons enregistrer, arrêter et effacer, le choix de la fréquence d'enregistrement, le panneau de connexion du capteur, le panneau des options du capteur et un bouton Tout réinitialiser.",
+        "interactionHint": "Connectez le capteur, choisissez une fréquence d'enregistrement, appuyez sur Enregistrer et regardez le graphique tracer la tension au cours du temps."
+      },
+      "currentDetails": {
+        "ready": "Prêt à enregistrer. Rien n'a encore été enregistré.",
+        "recording": "Enregistrement en cours. {{time}} secondes jusqu'ici.",
+        "stopped": "Enregistrement arrêté après {{time}} secondes.",
+        "waitingForSensor": "En attente de la connexion d'un capteur de tension."
+      },
+      "controls": {
+        "recordButton": "Démarrer l'enregistrement",
+        "stopButton": "Arrêter l'enregistrement",
+        "clearButton": "Effacer la tension enregistrée"
+      }
+    }
+  }
+}
