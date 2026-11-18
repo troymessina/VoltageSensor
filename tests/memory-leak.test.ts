@@ -85,6 +85,7 @@ describeDisposalLeaks([
         voltageProperty: sharedSource.voltageProperty,
         hasReadingProperty: sharedSource.hasReadingProperty,
         rangeProperty: sharedSource.rangeProperty,
+        overRangeProperty: sharedSource.overRangeProperty,
       }),
     keepAlive: () => [sharedSource],
   },

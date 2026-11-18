@@ -62,7 +62,7 @@ From PASCO's datasheet (`pasco_python/src/pasco/datasheets.py`):
 | Channel | one, sensor 2031, GATT service 1 |
 | Sample | `RawVoltage`, 2 bytes, unsigned little-endian |
 | Calibration | `FactoryCal` through (32768, 0 V) and (65536, ±full scale) |
-| Ranges | `pm5v:1`, `pm15v:3`; default 3 (±15 V) |
+| Ranges | `pm5v:1`, `pm15v:3` (PS-3211); this app uses 1 → ±5 V, 3 → ±30 V for the PS-3211A |
 
 The packet layer (UUID scheme, `READ_ONE_SAMPLE`, the result arriving on device
 service 0, streaming, and the USB envelope) is identical across PASCO's
@@ -71,8 +71,9 @@ verified on a PS-3219.
 
 ### The range
 
-The datasheet's `Voltage` measurement is a `Select` between the ±5 V and ±15 V
-calibrations, chosen by the range. pasco_python always picks the first input
+The datasheet describes the original PS-3211. Its `Voltage` measurement is a
+`Select` between the ±5 V and ±15 V calibrations, chosen by the range. The
+PS-3211A that this app targets reads ±30 V. pasco_python always picks the first input
 (±5 V) and never sends a range, so it cannot be followed blindly here. This app
 instead:
 
@@ -81,12 +82,20 @@ instead:
 2. decodes every raw count with the same range's calibration;
 3. raises `rangeCommandFailedProperty` (and a visible warning) if the device
    does not acknowledge the command, because the decode is then only right if
-   the device happens to be on the chosen range. It powers up on ±15 V, which
-   is why that is the default.
+   the device happens to be on the chosen range;
+4. raises `overRangeProperty` when the raw count is pinned at either end of the
+   scale, because a pinned ±5 V reading looks like an ordinary 5.000 V.
 
-The `SET_RANGE` framing was recovered by MotionSensor from SPARKvue's WebAssembly
-build. It has not been verified on a PS-3211. **First hardware test: read a known
-voltage on both ranges.**
+Hardware results on a PS-3211A:
+
+| Range command | Decoded as | Result |
+|---|---|---|
+| 1 | ±5 V | correct up to 5 V |
+| 3 | ±15 V | wrong (the original datasheet value) |
+| 3 | ±30 V | current assumption, **not yet verified across 5–30 V** |
+
+±5 V is therefore the default. If the ±30 V range reads wrong by a constant
+factor, change `fullScaleVolts()` in `PascoVoltageProtocol.ts`.
 
 ### What the device reading goes through
 

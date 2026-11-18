@@ -14,7 +14,7 @@ import { RAW_ZERO_COUNT, VoltageRange } from "../../../src/common/model/hardware
 import { SensorTransport, SensorVoltageSource } from "../../../src/common/model/SensorVoltageSource.js";
 
 /** The raw count the device would report for `volts` on a range of ±`fullScale`. */
-function voltsToRaw(volts: number, fullScale = 15): number {
+function voltsToRaw(volts: number, fullScale = 5): number {
   return Math.round(RAW_ZERO_COUNT + (volts / fullScale) * RAW_ZERO_COUNT);
 }
 
@@ -119,7 +119,7 @@ describe("SensorVoltageSource", () => {
 
     it("tells the device its range before the first sample", async () => {
       const { source, device } = await connectedSource();
-      expect(device.rangesSent).toEqual([VoltageRange.PLUS_MINUS_15V]);
+      expect(device.rangesSent).toEqual([VoltageRange.PLUS_MINUS_5V]);
       expect(source.rangeCommandFailedProperty.value).toBe(false);
       source.dispose();
     });
@@ -152,18 +152,33 @@ describe("SensorVoltageSource", () => {
   describe("the range", () => {
     it("re-sends the range and recalibrates the last reading when it changes", async () => {
       const { source, device } = await connectedSource();
-      const raw = voltsToRaw(3, 15);
+      const raw = voltsToRaw(3, 5);
       device.pushRaw(raw);
       expect(source.voltageProperty.value).toBeCloseTo(3, 3);
 
-      source.rangeProperty.value = VoltageRange.PLUS_MINUS_5V;
-      // The same raw count means a third of the voltage on the ±5 V range.
-      expect(source.voltageProperty.value).toBeCloseTo(1, 3);
+      source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;
+      // The same raw count means six times the voltage on the ±30 V range.
+      expect(source.voltageProperty.value).toBeCloseTo(18, 2);
 
       await vi.advanceTimersByTimeAsync(0);
-      expect(device.rangesSent).toEqual([VoltageRange.PLUS_MINUS_15V, VoltageRange.PLUS_MINUS_5V]);
+      expect(device.rangesSent).toEqual([VoltageRange.PLUS_MINUS_5V, VoltageRange.PLUS_MINUS_30V]);
       // Sampling resumed after the command.
       expect(device.onSample).not.toBeNull();
+      source.dispose();
+    });
+  });
+
+  describe("over range", () => {
+    it("flags a reading pinned at the end of the scale, and clears when it comes back", async () => {
+      const { source, device } = await connectedSource();
+      device.pushRaw(65535); // 9 V on the ±5 V range
+      expect(source.overRangeProperty.value).toBe(true);
+      device.pushRaw(voltsToRaw(4.5));
+      expect(source.overRangeProperty.value).toBe(false);
+      device.pushRaw(0);
+      expect(source.overRangeProperty.value).toBe(true);
+      await source.disconnect();
+      expect(source.overRangeProperty.value).toBe(false);
       source.dispose();
     });
   });
@@ -219,10 +234,10 @@ describe("SensorVoltageSource", () => {
     it("keeps the student's settings but not the connection on reset", async () => {
       const { source } = await connectedSource();
       source.changeSignProperty.value = true;
-      source.rangeProperty.value = VoltageRange.PLUS_MINUS_5V;
+      source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;
       source.reset();
       expect(source.changeSignProperty.value).toBe(false);
-      expect(source.rangeProperty.value).toBe(VoltageRange.PLUS_MINUS_15V);
+      expect(source.rangeProperty.value).toBe(VoltageRange.PLUS_MINUS_5V);
       expect(source.isAvailableProperty.value).toBe(true);
       source.dispose();
     });

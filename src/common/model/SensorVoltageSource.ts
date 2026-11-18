@@ -30,12 +30,13 @@
  * adjustment — the numbers that tell you whether the hardware is answering.
  *
  * ── The range is a device setting ─────────────────────────────────────────────
- * The PS-3211 has two input ranges, ±5 V and ±15 V, and the raw count means
+ * The sensor has two input ranges, ±5 V and ±30 V, and the raw count means
  * different volts in each. The chosen range is sent to the device on connect and
  * whenever it changes, and the same choice picks the calibration. If the device
  * refuses the command, {@link rangeCommandFailedProperty} says so: the reading
- * is then only right if the device happens to be in the range chosen here — it
- * powers up on ±15 V, which is why that is the default.
+ * is then only right if the device happens to be in the range chosen here.
+ * ±5 V is the default because it is the range verified on hardware. A reading
+ * pinned at the end of the scale sets {@link overRangeProperty}.
  *
  * ── Errors never reach the caller ─────────────────────────────────────────────
  * `connect()` resolves even when it fails. Connection outcomes are UI state, not
@@ -56,7 +57,12 @@ import {
 import VoltageSensorNamespace from "../../VoltageSensorNamespace.js";
 import { ConnectionState, type ConnectionStateValue } from "./ConnectionState.js";
 import { BluetoothVoltageSensor } from "./hardware/BluetoothVoltageSensor.js";
-import { rawCountToVolts, VoltageRange, type VoltageRangeValue } from "./hardware/PascoVoltageProtocol.js";
+import {
+  isRawCountAtLimit,
+  rawCountToVolts,
+  VoltageRange,
+  type VoltageRangeValue,
+} from "./hardware/PascoVoltageProtocol.js";
 import { UsbVoltageSensor } from "./hardware/UsbVoltageSensor.js";
 import { DeviceSelectionCancelled, type TVoltageSensorDevice } from "./hardware/VoltageSensorDevice.js";
 import type { TVoltageSource } from "./VoltageSource.js";
@@ -106,6 +112,13 @@ export class SensorVoltageSource implements TVoltageSource {
 
   /** True once a reading has arrived on the current connection. */
   public readonly hasReadingProperty: BooleanProperty;
+
+  /**
+   * True while the latest reading is pinned at the end of the range's scale,
+   * so the voltage is at or beyond full scale and the number shown is not the
+   * true voltage.
+   */
+  public readonly overRangeProperty: BooleanProperty;
 
   /** Which of the device's two input ranges to use, and to decode with. */
   public readonly rangeProperty: Property<VoltageRangeValue>;
@@ -198,7 +211,8 @@ export class SensorVoltageSource implements TVoltageSource {
 
     this.sensorVoltageProperty = new NumberProperty(0, { units: "V" });
     this.hasReadingProperty = new BooleanProperty(false);
-    this.rangeProperty = new Property<VoltageRangeValue>(VoltageRange.PLUS_MINUS_15V);
+    this.overRangeProperty = new BooleanProperty(false);
+    this.rangeProperty = new Property<VoltageRangeValue>(VoltageRange.PLUS_MINUS_5V);
     this.rangeCommandFailedProperty = new BooleanProperty(false);
     this.changeSignProperty = new BooleanProperty(false);
     this.zeroAtStartProperty = new BooleanProperty(false);
@@ -233,6 +247,7 @@ export class SensorVoltageSource implements TVoltageSource {
       this.stopSampling();
       this.availableProperty.value = false;
       this.hasReadingProperty.value = false;
+      this.overRangeProperty.value = false;
       this.deviceNameProperty.value = null;
       this.connectionStateProperty.value = ConnectionState.ERROR;
       this.errorMessageProperty.value = "disconnected";
@@ -327,6 +342,7 @@ export class SensorVoltageSource implements TVoltageSource {
     }
     this.availableProperty.value = false;
     this.hasReadingProperty.value = false;
+    this.overRangeProperty.value = false;
     this.deviceNameProperty.value = null;
     this.lastRawCount = null;
     this.rangeCommandFailedProperty.value = false;
@@ -476,6 +492,7 @@ export class SensorVoltageSource implements TVoltageSource {
     this.stopSampling();
     this.availableProperty.value = false;
     this.hasReadingProperty.value = false;
+    this.overRangeProperty.value = false;
     this.connectionStateProperty.value = ConnectionState.ERROR;
     this.errorMessageProperty.value = message;
   }
@@ -583,6 +600,7 @@ export class SensorVoltageSource implements TVoltageSource {
   private publishRawCount(rawCount: number, isNewReading: boolean): void {
     const volts = rawCountToVolts(rawCount, this.rangeProperty.value);
     this.lastRawCount = rawCount;
+    this.overRangeProperty.value = isRawCountAtLimit(rawCount);
     if (isNewReading && this.zeroOnNextReading) {
       this.zeroOnNextReading = false;
       this.zeroOffsetProperty.value = volts;
@@ -619,6 +637,7 @@ export class SensorVoltageSource implements TVoltageSource {
     this.rangeProperty.unlink(this.handleRangeChange);
     this.sensorVoltageProperty.dispose();
     this.hasReadingProperty.dispose();
+    this.overRangeProperty.dispose();
     this.rangeProperty.dispose();
     this.rangeCommandFailedProperty.dispose();
     this.changeSignProperty.dispose();

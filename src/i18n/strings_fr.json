@@ -70,6 +70,7 @@
     "unavailableInsecure": "La connexion au capteur exige une page sécurisée. Ouvrez cette application en HTTPS ou sur localhost.",
     "unavailableBrowser": "Ce navigateur ne peut pas se connecter au capteur. Utilisez Chrome, Edge ou Opera.",
     "rangeNotConfirmed": "Le capteur n'a pas confirmé le calibre. Les mesures supposent qu'il est réglé sur le calibre choisi ci-dessous.",
+    "overRange": "Hors calibre : la tension atteint ou dépasse la limite de ce calibre, la mesure n'est donc pas la tension réelle. Choisissez un calibre plus grand.",
     "rawVoltagePattern": "Capteur : {{voltage}} V"
   },
   "sensorOptions": {
@@ -80,7 +81,7 @@
     "removeZero": "Supprimer le décalage du zéro",
     "range": "Calibre",
     "range5": "±5 V",
-    "range15": "±15 V",
+    "range30": "±30 V",
     "offsetPattern": "Décalage du zéro : {{offset}} V"
   },
   "preferences": {

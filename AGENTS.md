@@ -42,11 +42,16 @@ changing model or hardware code.
   Record) and arm zero-at-start.
 - **The range is both a device command and the calibration.** The raw count is
   unsigned 16-bit; `volts = (raw − 32768) / 32768 × fullScale`. Sending the
-  wrong range, or decoding with the wrong one, is a silent ×3 error. If the
-  device refuses the command, `rangeCommandFailedProperty` turns on a warning.
-  The range values (`pm5v:1`, `pm15v:3`) come from the datasheet; the
-  `SET_RANGE` opcode framing came from MotionSensor and is **not yet verified on
-  a PS-3211**.
+  wrong range, or decoding with the wrong one, is a silent constant-factor
+  error. If the device refuses the command, `rangeCommandFailedProperty` turns
+  on a warning. The datasheet describes the original PS-3211 (`pm5v:1`,
+  `pm15v:3`). On a PS-3211A, range 1 decoded as ±5 V is **verified correct**;
+  range 3 decoded as ±15 V was **wrong**. The app now decodes range 3 as ±30 V
+  (the PS-3211A's span), which is **not yet verified**: `fullScaleVolts()` is
+  the one place to change it.
+- **A pinned converter looks like a real reading.** On ±5 V, 9 V reads as
+  5.000 V. `overRangeProperty` (raw count within 16 of either end of the scale)
+  turns the meter digits red and shows a warning in the connection panel.
 - **A range change halts sampling around the command** (and awaits the stream
   stop over USB) because the link cannot interleave a stream and a command.
 - **Both pickers need a user gesture.** `requestDevice()` must be reached

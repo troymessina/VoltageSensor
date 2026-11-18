@@ -5,7 +5,7 @@
 
 **Live app: <https://troymessina.github.io/VoltageSensor/>**
 
-A web interface for the **PASCO Wireless Voltage Sensor (PS-3211)**. It connects
+A web interface for the **PASCO Wireless Voltage Sensor (PS-3211A)**, which reads ±30 V. It connects
 straight from the browser over Web Bluetooth (or a USB cable), with no driver,
 app, or install. It has two screens:
 
@@ -24,7 +24,7 @@ app, or install. It has two screens:
 1. Open the app in **Chrome, Edge or Opera** on a laptop, Chromebook or Android
    device. (Firefox and Safari have neither Web Bluetooth nor WebUSB; the app
    says so instead of offering a button that cannot work.)
-2. Switch the PS-3211 on.
+2. Switch the sensor on.
 3. Press **Connect by Bluetooth** and choose the sensor in the browser's list.
    It appears as *Voltage* followed by its serial number. Or plug it in with a
    USB cable and press **Connect by USB**.
@@ -52,7 +52,7 @@ These are the same settings PASCO's SPARKvue offers for this sensor:
 
 | Option | What it does |
 |---|---|
-| **Range** ±15 V / ±5 V | The sensor's input range. ±5 V gives three times finer resolution. The range is sent to the sensor, which powers up on ±15 V. |
+| **Range** ±5 V / ±30 V | The sensor's input range, sent to the sensor. ±5 V (the default) has finer resolution. Use ±30 V for anything above 5 V. On ±5 V, a larger voltage pins the reading at 5.000 V, so the digits turn red and the connection panel says **Over range**. |
 | **Change sign** | Negates the reading, the same as swapping the red and black leads. |
 | **Zero sensor at start of each recording** | Each run records the change from wherever it started. |
 | **Zero Sensor Now** / **Remove Sensor Zero Offset** | Take the present reading as zero, or go back to the sensor's own zero. |
@@ -71,14 +71,16 @@ sensor keeps its own clock and streams.
 
 ## ⚠ Verify against a known voltage
 
-This app talks to the sensor using PASCO's published datasheet for the PS-3211.
-It was **not** tested against a physical sensor while it was being written. The
-first time you use it, read a known source, such as a fresh 1.5 V cell or a
-bench supply, on **both** ranges.
+This app talks to the sensor using PASCO's published datasheet, which describes
+the original PS-3211 (±5 V / ±15 V) rather than the PS-3211A (±30 V). On a
+PS-3211A, the **±5 V** range has been checked and reads correctly up to 5 V. The
+**±30 V** range has not yet been checked across 5–30 V. Before relying on it,
+compare a few known voltages, such as a bench supply at 5, 10, 20 and 30 V,
+against a multimeter.
 
-If the reading is off by a factor of three, the sensor did not take the range
-command. A yellow warning appears in the connection panel when the sensor does
-not confirm the range.
+A reading that is off by the same factor at every voltage means the ±30 V
+scaling needs adjusting. A yellow warning appears in the connection panel if the
+sensor does not confirm a range change.
 
 For hardware bring-up, add `?showDiagnostics=true` to the URL. It shows the
 raw 16-bit count and the calibrated voltage of every reading, and logs each one
@@ -121,7 +123,7 @@ which this app is built from:
 | Tool | Version | Notes |
 |---|---|---|
 | SceneryStack | ^3.0.0 | UI framework; `bamboo` for the graph |
-| Web Bluetooth / WebUSB | browser APIs | Direct, dependency-free PS-3211 communication |
+| Web Bluetooth / WebUSB | browser APIs | Direct, dependency-free PS-3211A communication |
 | Vite | ^8 | Build tool and dev server |
 | TypeScript | ^7 | `erasableSyntaxOnly`: no `enum`, no `namespace` |
 | Biome | ^2 | Lint + format |

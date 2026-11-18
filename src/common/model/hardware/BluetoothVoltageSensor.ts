@@ -131,7 +131,7 @@ export class BluetoothVoltageSensor implements TVoltageSensorDevice {
   }
 
   /**
-   * Switches the input range (±5 V / ±15 V). Rejects if the device refuses or stays silent;
+   * Switches the input range (±5 V / ±30 V). Rejects if the device refuses or stays silent;
    * the caller reports that, since the decode scale assumes the device obeyed.
    */
   public async setRange(range: VoltageRangeValue): Promise<void> {

@@ -215,12 +215,21 @@ export class SensorPanel extends VoltageSensorPanel {
     );
 
     // The range decides the calibration, so a device that may be on a different
-    // range from the one chosen here would make every reading wrong by a factor
-    // of three. That is worth a sentence, not just a diagnostics line.
+    // range from the one chosen here would make every reading wrong
+    // by a constant factor. That is worth a sentence, not just a diagnostics line.
     const rangeWarningText = new RichText(sensorStrings.rangeNotConfirmedStringProperty, {
       font: MESSAGE_FONT,
       fill: VoltageSensorColors.statusConnectingColorProperty,
       visibleProperty: source.rangeCommandFailedProperty,
+      lineWrap: CONTROL_PANEL_WIDTH - SENSOR_PANEL_SETTINGS.ERROR_TEXT_LINE_WRAP_OFFSET,
+    });
+
+    // A pinned converter reads as a perfectly ordinary 5.000 V, so a voltage
+    // beyond the range gets an explicit warning.
+    const overRangeText = new RichText(sensorStrings.overRangeStringProperty, {
+      font: MESSAGE_FONT,
+      fill: VoltageSensorColors.statusErrorColorProperty,
+      visibleProperty: source.overRangeProperty,
       lineWrap: CONTROL_PANEL_WIDTH - SENSOR_PANEL_SETTINGS.ERROR_TEXT_LINE_WRAP_OFFSET,
     });
 
@@ -267,6 +276,7 @@ export class SensorPanel extends VoltageSensorPanel {
           unavailableText,
           errorText,
           rangeWarningText,
+          overRangeText,
           diagnosticsText,
           measurementListText,
           rawReadingText,

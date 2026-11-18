@@ -70,6 +70,7 @@
     "unavailableInsecure": "Conectar el sensor requiere una página segura. Abre esta aplicación por HTTPS o en localhost.",
     "unavailableBrowser": "Este navegador no puede conectarse al sensor. Usa Chrome, Edge u Opera.",
     "rangeNotConfirmed": "El sensor no confirmó el rango. Las lecturas suponen que está en el rango elegido abajo.",
+    "overRange": "Fuera de rango: el voltaje alcanza o supera el límite de este rango, así que la lectura no es el voltaje real. Elige un rango mayor.",
     "rawVoltagePattern": "Sensor: {{voltage}} V"
   },
   "sensorOptions": {
@@ -80,7 +81,7 @@
     "removeZero": "Quitar el ajuste de cero",
     "range": "Rango",
     "range5": "±5 V",
-    "range15": "±15 V",
+    "range30": "±30 V",
     "offsetPattern": "Ajuste de cero: {{offset}} V"
   },
   "preferences": {

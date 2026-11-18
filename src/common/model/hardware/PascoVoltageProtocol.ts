@@ -19,6 +19,9 @@
  *   Measurement 3   Voltage     Select Inputs="1,2"  (picked by the range)
  *   Measurement 100 VoltageRangeSettings  Values="pm5v:1:pm15v:3", Value="3"
  *
+ * That entry is for the original PS-3211. The PS-3211A reads ±30 V; see
+ * {@link VoltageRange} for how its larger range is handled.
+ *
  * So one sample is two bytes, and the calibration is the straight line through
  * (32768, 0 V) and (65536, full scale): mid-scale is zero volts.
  */
@@ -99,13 +102,17 @@ const RESULT = 0xc0;
 const STATUS_OK = 0x00;
 
 /**
- * The PS-3211's two input ranges, as the values {@link SET_RANGE} takes. The
- * datasheet spells them `pm5v:1:pm15v:3` and its default is 3, so the device
- * powers up on ±15 V. ±5 V trades reach for three times finer resolution.
+ * The sensor's two input ranges, as the values {@link SET_RANGE} takes.
+ *
+ * PASCO's datasheet only describes the original PS-3211: `pm5v:1:pm15v:3`.
+ * The PS-3211A reads ±30 V. Tested on a PS-3211A, value 1 decoded as ±5 V reads
+ * correctly, and value 3 decoded as ±15 V does not. Value 3 decoded as ±30 V is
+ * the working assumption for the larger range, pending a test across 5–30 V.
+ * If it reads wrong by a constant factor, the fix is in {@link fullScaleVolts}.
  */
 export const VoltageRange = {
   PLUS_MINUS_5V: 1,
-  PLUS_MINUS_15V: 3,
+  PLUS_MINUS_30V: 3,
 } as const;
 
 export type VoltageRangeValue = (typeof VoltageRange)[keyof typeof VoltageRange];
@@ -264,7 +271,7 @@ export function usbPacketBody(transfer: Uint8Array): Uint8Array {
 
 /** Positive full-scale voltage of a range, in volts. */
 export function fullScaleVolts(range: VoltageRangeValue): number {
-  return range === VoltageRange.PLUS_MINUS_5V ? 5 : 15;
+  return range === VoltageRange.PLUS_MINUS_5V ? 5 : 30;
 }
 
 /**
@@ -274,4 +281,20 @@ export function fullScaleVolts(range: VoltageRangeValue): number {
 export function rawCountToVolts(rawCount: number, range: VoltageRangeValue): number {
   const fullScale = fullScaleVolts(range);
   return ((rawCount - RAW_ZERO_COUNT) * fullScale) / (RAW_FULL_SCALE_COUNT - RAW_ZERO_COUNT);
+}
+
+/**
+ * Counts within this distance of either end of the 16-bit scale are treated
+ * as the converter pinned at its limit.
+ */
+const RAW_LIMIT_MARGIN = 16;
+
+/**
+ * Whether a raw count is at the end of the scale. When it is, the input is at
+ * or beyond the range's full scale, and the true voltage is not known. On
+ * ±5 V, for example, 9 V reads as 5.000 V. The student needs to be told to
+ * choose a larger range, not shown a plausible number.
+ */
+export function isRawCountAtLimit(rawCount: number): boolean {
+  return rawCount <= RAW_LIMIT_MARGIN || rawCount >= RAW_FULL_SCALE_COUNT - 1 - RAW_LIMIT_MARGIN;
 }

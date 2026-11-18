@@ -5,6 +5,7 @@ import {
   decodeStreamPacket,
   decodeVoltageNotification,
   fullScaleVolts,
+  isRawCountAtLimit,
   isResultPacket,
   PASCO_CHARACTERISTIC,
   pascoUuid,
@@ -49,9 +50,9 @@ describe("PASCO voltage-sensor protocol", () => {
   });
 
   it("addresses the sensor's one ranged measurement with the datasheet's range values", () => {
-    // The datasheet: Values="pm5v:1:pm15v:3".
+    // The PS-3211 datasheet: Values="pm5v:1:pm15v:3". On the PS-3211A, 3 is taken to select ±30 V.
     expect(bytes(setRangeCommand(VoltageRange.PLUS_MINUS_5V))).toEqual([0x28, 0x00, 0x00, 0x01]);
-    expect(bytes(setRangeCommand(VoltageRange.PLUS_MINUS_15V))).toEqual([0x28, 0x00, 0x00, 0x03]);
+    expect(bytes(setRangeCommand(VoltageRange.PLUS_MINUS_30V))).toEqual([0x28, 0x00, 0x00, 0x03]);
   });
 
   it("separates an accepted command from a refused one", () => {
@@ -140,13 +141,13 @@ describe("PASCO voltage-sensor protocol", () => {
   });
 
   it("calibrates with the datasheet line through (32768, 0 V) and (65536, full scale)", () => {
-    expect(rawCountToVolts(RAW_ZERO_COUNT, VoltageRange.PLUS_MINUS_15V)).toBe(0);
-    expect(rawCountToVolts(65536, VoltageRange.PLUS_MINUS_15V)).toBe(15);
-    expect(rawCountToVolts(0, VoltageRange.PLUS_MINUS_15V)).toBe(-15);
+    expect(rawCountToVolts(RAW_ZERO_COUNT, VoltageRange.PLUS_MINUS_30V)).toBe(0);
+    expect(rawCountToVolts(65536, VoltageRange.PLUS_MINUS_30V)).toBe(30);
+    expect(rawCountToVolts(0, VoltageRange.PLUS_MINUS_30V)).toBe(-30);
     expect(rawCountToVolts(65536, VoltageRange.PLUS_MINUS_5V)).toBe(5);
     expect(rawCountToVolts(0, VoltageRange.PLUS_MINUS_5V)).toBe(-5);
     // A 1.5 V cell on each range.
-    expect(rawCountToVolts(36045, VoltageRange.PLUS_MINUS_15V)).toBeCloseTo(1.5, 3);
+    expect(rawCountToVolts(34406, VoltageRange.PLUS_MINUS_30V)).toBeCloseTo(1.5, 3);
     expect(rawCountToVolts(42598, VoltageRange.PLUS_MINUS_5V)).toBeCloseTo(1.5, 3);
   });
 
@@ -158,6 +159,14 @@ describe("PASCO voltage-sensor protocol", () => {
 
   it("knows each range's full scale", () => {
     expect(fullScaleVolts(VoltageRange.PLUS_MINUS_5V)).toBe(5);
-    expect(fullScaleVolts(VoltageRange.PLUS_MINUS_15V)).toBe(15);
+    expect(fullScaleVolts(VoltageRange.PLUS_MINUS_30V)).toBe(30);
+  });
+
+  it("flags a raw count pinned at either end of the scale as over range", () => {
+    expect(isRawCountAtLimit(65535)).toBe(true);
+    expect(isRawCountAtLimit(0)).toBe(true);
+    expect(isRawCountAtLimit(RAW_ZERO_COUNT)).toBe(false);
+    // 4.9 V on ±5 V is a real reading.
+    expect(isRawCountAtLimit(Math.round(RAW_ZERO_COUNT * (1 + 4.9 / 5)))).toBe(false);
   });
 });

@@ -138,12 +138,12 @@ export class SensorOptionsPanel extends VoltageSensorPanel {
       source.rangeProperty,
       [
         {
-          value: VoltageRange.PLUS_MINUS_15V,
-          createNode: () => new Text(strings.range15StringProperty, comboItemOptions()),
-        },
-        {
           value: VoltageRange.PLUS_MINUS_5V,
           createNode: () => new Text(strings.range5StringProperty, comboItemOptions()),
+        },
+        {
+          value: VoltageRange.PLUS_MINUS_30V,
+          createNode: () => new Text(strings.range30StringProperty, comboItemOptions()),
         },
       ],
       providedOptions.listParent,

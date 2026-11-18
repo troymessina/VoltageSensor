@@ -12,13 +12,14 @@ import { VOLTMETER_NODE_SETTINGS } from "../../VoltageSensorConstants.js";
  * does the other's job.
  *
  * ── The scale follows the range ───────────────────────────────────────────────
- * The dial is centre-zero and spans the sensor's range, ±5 V or ±15 V, and is
+ * The dial is centre-zero and spans the sensor's range, ±5 V or ±30 V, and is
  * redrawn when the range changes. A reading beyond the range pegs the needle a
  * few degrees past the last tick rather than leaving the face.
  *
  * Until the sensor has given a reading the needle rests at zero, dimmed, and
  * the digits show a placeholder, so a meter that is not measuring never shows a
- * plausible-looking 0.000 V.
+ * plausible-looking 0.000 V. A reading pinned at the end of the range turns the
+ * digits red, so a pegged 5.000 V is not mistaken for a measurement.
  */
 
 import { DerivedProperty, PatternStringProperty, type TReadOnlyProperty } from "scenerystack/axon";
@@ -49,6 +50,8 @@ export type VoltmeterNodeOptions = {
   readonly hasReadingProperty: TReadOnlyProperty<boolean>;
   /** The sensor's range, which sets the scale. */
   readonly rangeProperty: TReadOnlyProperty<VoltageRangeValue>;
+  /** True while the reading is pinned at the end of the range; the digits turn the error colour. */
+  readonly overRangeProperty: TReadOnlyProperty<boolean>;
 };
 
 export class VoltmeterNode extends Node {
@@ -77,7 +80,7 @@ export class VoltmeterNode extends Node {
       scaleNode.removeAllChildren();
 
       const fullScale = fullScaleVolts(range);
-      const majorStep = range === VoltageRange.PLUS_MINUS_15V ? 5 : 1;
+      const majorStep = range === VoltageRange.PLUS_MINUS_30V ? 10 : 1;
       const minorStep = majorStep / (S.MINOR_TICKS_PER_MAJOR + 1);
 
       // Arc of the scale, from the left end to the right end.
@@ -172,14 +175,23 @@ export class VoltmeterNode extends Node {
         return isZero ? ` ${magnitude}` : volts < 0 ? `−${magnitude}` : `+${magnitude}`;
       },
     );
+    // The same red as the connection panel's over-range warning, so the two read as one message.
+    const readoutColorProperty = new DerivedProperty(
+      [
+        options.overRangeProperty,
+        VoltageSensorColors.statusErrorColorProperty,
+        VoltageSensorColors.accentColorProperty,
+      ],
+      (overRange, errorColor, accentColor) => (overRange ? errorColor : accentColor),
+    );
     const readoutText = new Text(readoutStringProperty, {
       font: READOUT_FONT,
-      fill: VoltageSensorColors.accentColorProperty,
+      fill: readoutColorProperty,
       maxWidth: S.READOUT_WIDTH - 90,
     });
     const unitText = new Text(meterStrings.unitStringProperty, {
       font: UNIT_FONT,
-      fill: VoltageSensorColors.accentColorProperty,
+      fill: readoutColorProperty,
     });
     const readoutRow = new HBox({ spacing: 10, align: "bottom", children: [readoutText, unitText] });
     const readoutWindow = new Rectangle(0, 0, S.READOUT_WIDTH, readoutRow.height + 20, 8, 8, {
@@ -229,6 +241,7 @@ export class VoltmeterNode extends Node {
       captionProperty.dispose();
       rangeValueProperty.dispose();
       readoutStringProperty.dispose();
+      readoutColorProperty.dispose();
     };
   }
 

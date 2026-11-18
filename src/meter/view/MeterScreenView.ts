@@ -69,6 +69,7 @@ export class MeterScreenView extends ScreenView {
       voltageProperty: source.sensorVoltageProperty,
       hasReadingProperty: source.hasReadingProperty,
       rangeProperty: source.rangeProperty,
+      overRangeProperty: source.overRangeProperty,
     });
 
     // Said under the meter, not only in the panel, because the meter is where a
