@@ -70,7 +70,7 @@
     "unavailableInsecure": "Conectar el sensor requiere una página segura. Abre esta aplicación por HTTPS o en localhost.",
     "unavailableBrowser": "Este navegador no puede conectarse al sensor. Usa Chrome, Edge u Opera.",
     "rangeNotConfirmed": "El sensor no confirmó el rango. Las lecturas suponen que está en el rango elegido abajo.",
-    "overRange": "Fuera de rango: el voltaje alcanza o supera el límite de este rango, así que la lectura no es el voltaje real. Elige un rango mayor.",
+    "overRange": "Fuera de rango: el voltaje real supera este rango. Elige un rango mayor.",
     "rawVoltagePattern": "Sensor: {{voltage}} V"
   },
   "sensorOptions": {
@@ -82,6 +82,7 @@
     "range": "Rango",
     "range5": "±5 V",
     "range30": "±30 V",
+    "rangeNote": "Ajusta el rango del sensor en el software de PASCO (Capstone o SPARKvue) y elige el mismo rango aquí. Esta aplicación puede cambiar el sensor a ±5 V, pero no a ±30 V.",
     "offsetPattern": "Ajuste de cero: {{offset}} V"
   },
   "preferences": {

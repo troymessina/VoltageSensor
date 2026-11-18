@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AcknowledgedCommand,
+  canCommandRange,
   decodeCommandAck,
   decodeStreamPacket,
   decodeVoltageNotification,
@@ -160,6 +161,11 @@ describe("PASCO voltage-sensor protocol", () => {
   it("knows each range's full scale", () => {
     expect(fullScaleVolts(VoltageRange.PLUS_MINUS_5V)).toBe(5);
     expect(fullScaleVolts(VoltageRange.PLUS_MINUS_30V)).toBe(30);
+  });
+
+  it("commands only the ±5 V range, which a PS-3211A accepts", () => {
+    expect(canCommandRange(VoltageRange.PLUS_MINUS_5V)).toBe(true);
+    expect(canCommandRange(VoltageRange.PLUS_MINUS_30V)).toBe(false);
   });
 
   it("flags a raw count pinned at either end of the scale as over range", () => {

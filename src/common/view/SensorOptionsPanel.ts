@@ -4,6 +4,8 @@ import { SENSOR_OPTIONS_PANEL_SETTINGS } from "../../VoltageSensorConstants.js";
  *
  * The measurement settings PASCO's own software offers for a voltage sensor:
  * change sign, zero at start, zero now / remove the zero offset, and the range.
+ * A note under the range menu says the sensor's range must be set in PASCO
+ * software, because the app can command ±5 V but not ±30 V.
  * Shown on both screens, bound to the one shared source, so a setting made on
  * one screen is the setting on the other.
  *
@@ -25,7 +27,7 @@ import {
 } from "scenerystack/axon";
 import { toFixed } from "scenerystack/dot";
 import type { Node } from "scenerystack/scenery";
-import { HBox, Text, VBox } from "scenerystack/scenery";
+import { HBox, RichText, Text, VBox } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
 import { Checkbox, ComboBox, RectangularPushButton } from "scenerystack/sun";
 import { StringManager } from "../../i18n/StringManager.js";
@@ -161,6 +163,15 @@ export class SensorOptionsPanel extends VoltageSensorPanel {
       },
     );
 
+    // The sensor accepts a command to ±5 V but refuses ±30 V, which only PASCO's
+    // own software can set. The menu here picks how readings are decoded, so it
+    // has to match the sensor, and that is something only the user can ensure.
+    const rangeNoteText = new RichText(strings.rangeNoteStringProperty, {
+      font: READOUT_FONT,
+      fill: VoltageSensorColors.textColorProperty,
+      lineWrap: CONTROL_PANEL_WIDTH - SENSOR_OPTIONS_PANEL_SETTINGS.CONSTRUCTOR_MAX_WIDTH_OFFSET,
+    });
+
     super(
       new VBox({
         align: "left",
@@ -184,6 +195,7 @@ export class SensorOptionsPanel extends VoltageSensorPanel {
               rangeComboBox,
             ],
           }),
+          rangeNoteText,
           changeSignCheckbox,
           zeroAtStartCheckbox,
           // One per row: side by side the two labels are wider than the control
@@ -214,6 +226,7 @@ export class SensorOptionsPanel extends VoltageSensorPanel {
         zeroNowButton,
         removeZeroButton,
         rangeComboBox,
+        rangeNoteText,
         offsetProperty,
         offsetValueProperty,
         canRemoveZeroProperty,

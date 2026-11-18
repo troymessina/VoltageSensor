@@ -52,7 +52,7 @@ These are the same settings PASCO's SPARKvue offers for this sensor:
 
 | Option | What it does |
 |---|---|
-| **Range** ±5 V / ±30 V | The sensor's input range, sent to the sensor. ±5 V (the default) has finer resolution. Use ±30 V for anything above 5 V. On ±5 V, a larger voltage pins the reading at 5.000 V, so the digits turn red and the connection panel says **Over range**. |
+| **Range** ±5 V / ±30 V | Must match the range set on the sensor in PASCO software (Capstone or SPARKvue); a note under the menu says so. The app can switch the sensor to ±5 V (the default, with finer resolution) but **not** to ±30 V. To use ±30 V, set the sensor to 30 V in PASCO software, then choose ±30 V here. After choosing ±5 V here, the sensor stays on ±5 V until it is set back to 30 V in PASCO software. A mismatch reads 6× too high (sensor on ±5 V, app on ±30 V) or 6× too low (the reverse). On ±5 V, a larger voltage pins the reading at 5.000 V, so the digits turn red and the connection panel says **Over range**. |
 | **Change sign** | Negates the reading, the same as swapping the red and black leads. |
 | **Zero sensor at start of each recording** | Each run records the change from wherever it started. |
 | **Zero Sensor Now** / **Remove Sensor Zero Offset** | Take the present reading as zero, or go back to the sensor's own zero. |
@@ -71,16 +71,17 @@ sensor keeps its own clock and streams.
 
 ## ⚠ Verify against a known voltage
 
-This app talks to the sensor using PASCO's published datasheet, which describes
-the original PS-3211 (±5 V / ±15 V) rather than the PS-3211A (±30 V). On a
-PS-3211A, the **±5 V** range has been checked and reads correctly up to 5 V. The
-**±30 V** range has not yet been checked across 5–30 V. Before relying on it,
-compare a few known voltages, such as a bench supply at 5, 10, 20 and 30 V,
-against a multimeter.
+PASCO's published datasheet describes the original PS-3211 (±5 V / ±15 V)
+rather than the PS-3211A (±30 V). Checked on a PS-3211A:
 
-A reading that is off by the same factor at every voltage means the ±30 V
-scaling needs adjusting. A yellow warning appears in the connection panel if the
-sensor does not confirm a range change.
+- **±5 V** reads correctly. The app sets the sensor to it itself.
+- **±30 V** reads correctly once the sensor has been set to 30 V in PASCO
+  Capstone. The sensor refuses the command to switch to ±30 V, so the app does
+  not send it.
+
+If readings are off by a factor of 6, the range on the sensor and the range
+chosen in the app do not match. A yellow warning appears in the connection panel
+if the sensor ever refuses the ±5 V command.
 
 For hardware bring-up, add `?showDiagnostics=true` to the URL. It shows the
 raw 16-bit count and the calibrated voltage of every reading, and logs each one

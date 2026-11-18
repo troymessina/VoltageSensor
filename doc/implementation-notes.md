@@ -62,7 +62,7 @@ From PASCO's datasheet (`pasco_python/src/pasco/datasheets.py`):
 | Channel | one, sensor 2031, GATT service 1 |
 | Sample | `RawVoltage`, 2 bytes, unsigned little-endian |
 | Calibration | `FactoryCal` through (32768, 0 V) and (65536, ±full scale) |
-| Ranges | `pm5v:1`, `pm15v:3` (PS-3211); this app uses 1 → ±5 V, 3 → ±30 V for the PS-3211A |
+| Ranges | `pm5v:1`, `pm15v:3` (PS-3211). On the PS-3211A, 1 → ±5 V works; ±30 V can only be set in PASCO software |
 
 The packet layer (UUID scheme, `READ_ONE_SAMPLE`, the result arriving on device
 service 0, streaming, and the USB envelope) is identical across PASCO's
@@ -77,8 +77,9 @@ PS-3211A that this app targets reads ±30 V. pasco_python always picks the first
 (±5 V) and never sends a range, so it cannot be followed blindly here. This app
 instead:
 
-1. sends `SET_RANGE` (`[0x28, 0x00, 0x00, value]`) with the chosen range on
-   connect and on every change, halting sampling around the command;
+1. sends `SET_RANGE` (`[0x28, 0x00, 0x00, 1]`) when ±5 V is chosen, on connect
+   and on every change to it, halting sampling around the command. ±30 V is
+   never sent (see below);
 2. decodes every raw count with the same range's calibration;
 3. raises `rangeCommandFailedProperty` (and a visible warning) if the device
    does not acknowledge the command, because the decode is then only right if
@@ -88,14 +89,21 @@ instead:
 
 Hardware results on a PS-3211A:
 
-| Range command | Decoded as | Result |
-|---|---|---|
-| 1 | ±5 V | correct up to 5 V |
-| 3 | ±15 V | wrong (the original datasheet value) |
-| 3 | ±30 V | current assumption, **not yet verified across 5–30 V** |
+| What was tried | Result |
+|---|---|
+| Command 1, decoded as ±5 V | Accepted; reads correctly |
+| Command 3, decoded as ±15 V (the original datasheet) | Command refused; reads wrong |
+| Command 3, decoded as ±30 V | Command refused; sensor still on ±5 V, so reads 6× high |
+| Sensor set to 30 V in PASCO Capstone, decoded as ±30 V | Reads correctly |
 
-±5 V is therefore the default. If the ±30 V range reads wrong by a constant
-factor, change `fullScaleVolts()` in `PascoVoltageProtocol.ts`.
+The sensor's range cannot be raised to ±30 V from code, so the app never sends
+a ±30 V command (`canCommandRange`). Choosing ±30 V changes only the decode,
+and a note under the range menu tells the user to set the sensor's range in
+PASCO software to match. Because the ±30 V command is not sent, the yellow
+"did not confirm" warning no longer appears for it. The app can still lower the
+sensor to ±5 V, so choosing ±5 V and then ±30 V again requires setting the
+sensor back to 30 V in PASCO software. The note says this: "This app can switch
+the sensor to ±5 V, but not to ±30 V."
 
 ### What the device reading goes through
 

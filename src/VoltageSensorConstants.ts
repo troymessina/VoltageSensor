@@ -279,9 +279,9 @@ export const RECORDER_SCREEN_VIEW_SETTINGS = {
   /** Gap between the data table and the graph's edges, in pixels. */
   TABLE_INSET: 10,
   /** View control spacing (px). */
-  VIEW_CONTROL_SPACING: 7,
+  VIEW_CONTROL_SPACING: 24,
   /** Control column spacing (px). */
-  CONTROL_COLUMN_SPACING: 14,
+  CONTROL_COLUMN_SPACING: 10,
   /** Create checkbox max width (px). */
   CREATE_CHECKBOX_MAX_WIDTH: 300,
 } as const;

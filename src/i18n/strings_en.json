@@ -70,7 +70,7 @@
     "unavailableInsecure": "Connecting to the sensor needs a secure page. Open this app over HTTPS, or on localhost.",
     "unavailableBrowser": "This browser cannot connect to the sensor. Use Chrome, Edge, or Opera.",
     "rangeNotConfirmed": "The sensor did not confirm the range. Readings assume it is set to the range chosen below.",
-    "overRange": "Over range: the voltage is at or beyond the end of this range, so the reading is not the true voltage. Choose a larger range.",
+    "overRange": "Over range: the true voltage is beyond this range. Choose a larger range.",
     "rawVoltagePattern": "Sensor: {{voltage}} V"
   },
   "sensorOptions": {
@@ -82,6 +82,7 @@
     "range": "Range",
     "range5": "±5 V",
     "range30": "±30 V",
+    "rangeNote": "Set the sensor's range in PASCO software (Capstone or SPARKvue), and choose the same range here. This app can switch the sensor to ±5 V, but not to ±30 V.",
     "offsetPattern": "Zero offset: {{offset}} V"
   },
   "preferences": {

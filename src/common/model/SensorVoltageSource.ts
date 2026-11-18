@@ -31,10 +31,11 @@
  *
  * ── The range is a device setting ─────────────────────────────────────────────
  * The sensor has two input ranges, ±5 V and ±30 V, and the raw count means
- * different volts in each. The chosen range is sent to the device on connect and
- * whenever it changes, and the same choice picks the calibration. If the device
- * refuses the command, {@link rangeCommandFailedProperty} says so: the reading
- * is then only right if the device happens to be in the range chosen here.
+ * different volts in each. The chosen range always picks the calibration. Only
+ * ±5 V can be sent to the device (see {@link canCommandRange}), on connect and
+ * whenever it is chosen. ±30 V must be set in PASCO's own software, and the
+ * options panel says so. If the ±5 V command is refused,
+ * {@link rangeCommandFailedProperty} says so.
  * ±5 V is the default because it is the range verified on hardware. A reading
  * pinned at the end of the scale sets {@link overRangeProperty}.
  *
@@ -58,6 +59,7 @@ import VoltageSensorNamespace from "../../VoltageSensorNamespace.js";
 import { ConnectionState, type ConnectionStateValue } from "./ConnectionState.js";
 import { BluetoothVoltageSensor } from "./hardware/BluetoothVoltageSensor.js";
 import {
+  canCommandRange,
   isRawCountAtLimit,
   rawCountToVolts,
   VoltageRange,
@@ -321,7 +323,7 @@ export class SensorVoltageSource implements TVoltageSource {
 
     // The range goes out before the first sample, so the first reading is
     // already decoded with the calibration the device is actually using.
-    await this.sendRangeCommand(device);
+    await this.sendRangeCommand(device, this.rangeProperty.value);
     if (device !== this.device) {
       return;
     }
@@ -386,7 +388,8 @@ export class SensorVoltageSource implements TVoltageSource {
   // ── Range command ───────────────────────────────────────────────────────────
 
   private queueRangeCommand(): void {
-    this.rangeCommandChain = this.rangeCommandChain.then(() => this.changeRangeWhileConnected());
+    const range = this.rangeProperty.value;
+    this.rangeCommandChain = this.rangeCommandChain.then(() => this.changeRangeWhileConnected(range));
   }
 
   /**
@@ -394,9 +397,15 @@ export class SensorVoltageSource implements TVoltageSource {
    * a stream must be stopped before the link carries anything else — and
    * resumed afterwards. Never rejects.
    */
-  private async changeRangeWhileConnected(): Promise<void> {
+  private async changeRangeWhileConnected(range: VoltageRangeValue): Promise<void> {
     const device = this.device;
     if (device === null || !device.isConnected || this.usbProbeOnly || !this.availableProperty.value) {
+      return;
+    }
+    // A range the app cannot command needs no pause in sampling: only the
+    // decode changes.
+    if (!canCommandRange(range)) {
+      this.rangeCommandFailedProperty.value = false;
       return;
     }
     const wasSampling = this.samplingRequested;
@@ -404,16 +413,24 @@ export class SensorVoltageSource implements TVoltageSource {
       this.stopSampling();
       await device.stopStreaming?.().catch(() => undefined);
     }
-    await this.sendRangeCommand(device);
+    await this.sendRangeCommand(device, range);
     if (wasSampling && device === this.device && device.isConnected) {
       this.startSampling();
     }
   }
 
-  /** Writes the chosen range to the device and records whether it was accepted. Never rejects. */
-  private async sendRangeCommand(device: TVoltageSensorDevice): Promise<void> {
+  /**
+   * Writes the chosen range to the device and records whether it was accepted.
+   * Never rejects. A range the device cannot be commanded to (±30 V) is not
+   * sent. Its refusal is known in advance, so it is not reported as a failure.
+   */
+  private async sendRangeCommand(device: TVoltageSensorDevice, range: VoltageRangeValue): Promise<void> {
+    if (!canCommandRange(range)) {
+      this.rangeCommandFailedProperty.value = false;
+      return;
+    }
     try {
-      await device.setRange(this.rangeProperty.value);
+      await device.setRange(range);
       this.rangeCommandFailedProperty.value = false;
     } catch (error) {
       this.rangeCommandFailedProperty.value = true;

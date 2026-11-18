@@ -105,10 +105,13 @@ const STATUS_OK = 0x00;
  * The sensor's two input ranges, as the values {@link SET_RANGE} takes.
  *
  * PASCO's datasheet only describes the original PS-3211: `pm5v:1:pm15v:3`.
- * The PS-3211A reads ±30 V. Tested on a PS-3211A, value 1 decoded as ±5 V reads
- * correctly, and value 3 decoded as ±15 V does not. Value 3 decoded as ±30 V is
- * the working assumption for the larger range, pending a test across 5–30 V.
- * If it reads wrong by a constant factor, the fix is in {@link fullScaleVolts}.
+ * Tested on a PS-3211A, which reads ±30 V:
+ *   - value 1 is accepted, selects ±5 V, and decodes correctly as ±5 V;
+ *   - value 3 is refused, and the sensor stays where it was;
+ *   - with the sensor set to its 30 V range in PASCO Capstone, decoding as
+ *     ±30 V reads correctly.
+ * PLUS_MINUS_30V is therefore only an identifier here. It is never sent; see
+ * {@link canCommandRange}.
  */
 export const VoltageRange = {
   PLUS_MINUS_5V: 1,
@@ -145,6 +148,19 @@ export function readVoltageSampleCommand(): ArrayBuffer {
 /** Asks the sensor to switch receiver range. Answered like any other command. */
 export function setRangeCommand(range: VoltageRangeValue): ArrayBuffer {
   return toCommandBuffer([SET_RANGE, 0x00, RANGE_MEASUREMENT_ORDINAL, range]);
+}
+
+/**
+ * Whether the app can put the sensor on this range itself.
+ *
+ * On a PS-3211A, SET_RANGE with value 1 is accepted and selects ±5 V. Value 3
+ * is refused, and no value for ±30 V is known: the sensor reaches ±30 V only
+ * when that range is set in PASCO's own software (Capstone or SPARKvue). So
+ * ±30 V is never sent. Choosing it only changes how readings are decoded, and
+ * the user is told to set the sensor's range to match.
+ */
+export function canCommandRange(range: VoltageRangeValue): boolean {
+  return range === VoltageRange.PLUS_MINUS_5V;
 }
 
 /** Opcodes this client sends and then waits to see acknowledged. */

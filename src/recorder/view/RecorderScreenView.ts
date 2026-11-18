@@ -2,8 +2,8 @@ import { RECORDER_SCREEN_VIEW_SETTINGS } from "../../VoltageSensorConstants.js";
 /**
  * RecorderScreenView.ts
  *
- * The Voltage vs Time screen: the configurable graph on the left, and on the
- * right the view checkboxes, the record controls with the recording-rate
+ * The Voltage vs Time screen: the configurable graph on the left with the view
+ * checkboxes under it, and on the right the record controls with the recording-rate
  * chooser, and the connection and sensor-options panels shared with the Meter
  * screen.
  *
@@ -22,7 +22,7 @@ import { RECORDER_SCREEN_VIEW_SETTINGS } from "../../VoltageSensorConstants.js";
 
 import { BooleanProperty, type TReadOnlyProperty } from "scenerystack/axon";
 import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
-import { Node, Rectangle, Text, VBox } from "scenerystack/scenery";
+import { HBox, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { PhetFont, ResetAllButton } from "scenerystack/scenery-phet";
 import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
 import { Checkbox } from "scenerystack/sun";
@@ -153,11 +153,15 @@ export class RecorderScreenView extends ScreenView {
       showTableProperty,
       strings.getShowTableStringProperty(),
     );
-    const viewControl = new VBox({
-      align: "left",
+    // Under the graph rather than at the top of the control column: the column
+    // has to leave room for the connection panel's warnings above Reset All.
+    const viewControl = new HBox({
       spacing: RECORDER_SCREEN_VIEW_SETTINGS.VIEW_CONTROL_SPACING,
       children: [showGraphCheckbox, showTableCheckbox],
+      left: SCREEN_VIEW_MARGIN,
+      bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
     });
+    this.addChild(viewControl);
 
     const sensorPanel = new SensorPanel({
       source: source,
@@ -172,7 +176,7 @@ export class RecorderScreenView extends ScreenView {
     const controlColumn = new VBox({
       align: "left",
       spacing: RECORDER_SCREEN_VIEW_SETTINGS.CONTROL_COLUMN_SPACING,
-      children: [viewControl, recordControl, sensorPanel, sensorOptionsPanel],
+      children: [recordControl, sensorPanel, sensorOptionsPanel],
       right: this.layoutBounds.maxX - SCREEN_VIEW_MARGIN,
       top: SCREEN_VIEW_MARGIN,
     });
