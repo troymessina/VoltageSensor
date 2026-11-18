@@ -168,11 +168,27 @@ describe("PASCO voltage-sensor protocol", () => {
     expect(canCommandRange(VoltageRange.PLUS_MINUS_30V)).toBe(false);
   });
 
-  it("flags a raw count pinned at either end of the scale as over range", () => {
-    expect(isRawCountAtLimit(65535)).toBe(true);
-    expect(isRawCountAtLimit(0)).toBe(true);
-    expect(isRawCountAtLimit(RAW_ZERO_COUNT)).toBe(false);
-    // 4.9 V on ±5 V is a real reading.
-    expect(isRawCountAtLimit(Math.round(RAW_ZERO_COUNT * (1 + 4.9 / 5)))).toBe(false);
+  it("flags the measured converter limits of each range as over range", () => {
+    const { PLUS_MINUS_5V: r5, PLUS_MINUS_30V: r30 } = VoltageRange;
+    // ±5 V: pinned at 65535 above +5 V, and at 140–160 below −5 V.
+    expect(isRawCountAtLimit(65535, r5)).toBe(true);
+    for (const raw of [140, 150, 160]) {
+      expect(isRawCountAtLimit(raw, r5)).toBe(true);
+    }
+    // ±30 V: about 65400 at +31 V, and 280–295 at −31 V.
+    expect(isRawCountAtLimit(65400, r30)).toBe(true);
+    for (const raw of [280, 290, 295]) {
+      expect(isRawCountAtLimit(raw, r30)).toBe(true);
+    }
+  });
+
+  it("does not flag readings inside either range", () => {
+    const rawFor = (volts: number, fullScale: number) => Math.round(RAW_ZERO_COUNT * (1 + volts / fullScale));
+    for (const volts of [0, 4.9, -4.9, 1.5, -1.5]) {
+      expect(isRawCountAtLimit(rawFor(volts, 5), VoltageRange.PLUS_MINUS_5V)).toBe(false);
+    }
+    for (const volts of [0, 29.5, -29.5, 12, -12]) {
+      expect(isRawCountAtLimit(rawFor(volts, 30), VoltageRange.PLUS_MINUS_30V)).toBe(false);
+    }
   });
 });

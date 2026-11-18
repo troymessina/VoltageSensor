@@ -52,7 +52,7 @@ changing model or hardware code.
   (the yellow warning) now means the ±5 V command was refused, which should not
   happen.
 - **A pinned converter looks like a real reading.** On ±5 V, 9 V reads as
-  5.000 V. `overRangeProperty` (raw count within 16 of either end of the scale)
+  5.000 V. `overRangeProperty` (raw count past per-range limits measured on a PS-3211A; see `OVER_RANGE_LIMITS`)
   turns the meter digits red and shows a warning in the connection panel.
 - **A range change halts sampling around the command** (and awaits the stream
   stop over USB) because the link cannot interleave a stream and a command.

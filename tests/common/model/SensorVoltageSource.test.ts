@@ -206,7 +206,7 @@ describe("SensorVoltageSource", () => {
       expect(source.overRangeProperty.value).toBe(true);
       device.pushRaw(voltsToRaw(4.5));
       expect(source.overRangeProperty.value).toBe(false);
-      device.pushRaw(0);
+      device.pushRaw(150); // below −5 V: the negative end stops short of 0
       expect(source.overRangeProperty.value).toBe(true);
       await source.disconnect();
       expect(source.overRangeProperty.value).toBe(false);

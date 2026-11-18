@@ -84,8 +84,10 @@ instead:
 3. raises `rangeCommandFailedProperty` (and a visible warning) if the device
    does not acknowledge the command, because the decode is then only right if
    the device happens to be on the chosen range;
-4. raises `overRangeProperty` when the raw count is pinned at either end of the
-   scale, because a pinned ±5 V reading looks like an ordinary 5.000 V.
+4. raises `overRangeProperty` when the raw count reaches the converter limits
+   measured for that range (`OVER_RANGE_LIMITS`: the negative end stops near
+   150 on ±5 V and 290 on ±30 V, not at 0). A pinned reading is otherwise
+   indistinguishable from an ordinary 5.000 V.
 
 Hardware results on a PS-3211A:
 

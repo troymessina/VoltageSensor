@@ -617,7 +617,7 @@ export class SensorVoltageSource implements TVoltageSource {
   private publishRawCount(rawCount: number, isNewReading: boolean): void {
     const volts = rawCountToVolts(rawCount, this.rangeProperty.value);
     this.lastRawCount = rawCount;
-    this.overRangeProperty.value = isRawCountAtLimit(rawCount);
+    this.overRangeProperty.value = isRawCountAtLimit(rawCount, this.rangeProperty.value);
     if (isNewReading && this.zeroOnNextReading) {
       this.zeroOnNextReading = false;
       this.zeroOffsetProperty.value = volts;

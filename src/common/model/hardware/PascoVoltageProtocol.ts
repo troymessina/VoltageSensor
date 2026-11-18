@@ -300,17 +300,31 @@ export function rawCountToVolts(rawCount: number, range: VoltageRangeValue): num
 }
 
 /**
- * Counts within this distance of either end of the 16-bit scale are treated
- * as the converter pinned at its limit.
+ * Where the sensor's converter stops, as raw counts, per range. Measured on a
+ * PS-3211A with inputs well beyond each range (2026-11-18):
+ *
+ *   ±5 V:  below −5 V the count sits at 140–160; above +5 V it sits at 65535.
+ *   ±30 V: at −31 V the count sits at 280–295; at +31 V it is about 65400.
+ *
+ * The negative end does not reach 0, and on ±30 V neither end reaches the end
+ * of the 16-bit scale, so a test against 0 and 65535 alone misses them. Each
+ * threshold sits about 50 counts inside the measured limit, clear of the
+ * reading noise at the limit, so a pinned reading is always caught. The cost is
+ * that a genuine reading in that last sliver of the range — within about 8 mV of
+ * −5 V, or about 50 mV of ±30 V — is also flagged, which errs the right way.
  */
-const RAW_LIMIT_MARGIN = 16;
+const OVER_RANGE_LIMITS: Record<VoltageRangeValue, { readonly low: number; readonly high: number }> = {
+  [VoltageRange.PLUS_MINUS_5V]: { low: 210, high: 65519 },
+  [VoltageRange.PLUS_MINUS_30V]: { low: 345, high: 65350 },
+};
 
 /**
- * Whether a raw count is at the end of the scale. When it is, the input is at
- * or beyond the range's full scale, and the true voltage is not known. On
- * ±5 V, for example, 9 V reads as 5.000 V. The student needs to be told to
+ * Whether a raw count is at the end of the range, where the converter stops.
+ * The input is then at or beyond full scale and the true voltage is not known.
+ * On ±5 V, for example, 9 V reads as 5.000 V. The student needs to be told to
  * choose a larger range, not shown a plausible number.
  */
-export function isRawCountAtLimit(rawCount: number): boolean {
-  return rawCount <= RAW_LIMIT_MARGIN || rawCount >= RAW_FULL_SCALE_COUNT - 1 - RAW_LIMIT_MARGIN;
+export function isRawCountAtLimit(rawCount: number, range: VoltageRangeValue): boolean {
+  const limits = OVER_RANGE_LIMITS[range];
+  return rawCount <= limits.low || rawCount >= limits.high;
 }
