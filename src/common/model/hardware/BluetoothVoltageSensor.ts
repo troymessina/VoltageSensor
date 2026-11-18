@@ -3,7 +3,8 @@
 import {
   AcknowledgedCommand,
   type AcknowledgedCommandValue,
-  decodeCommandAck,
+  COMMAND_STATUS_OK,
+  decodeCommandStatus,
   decodeVoltageNotification,
   keepaliveCommand,
   PASCO_CHARACTERISTIC,
@@ -16,7 +17,7 @@ import {
   VOLTAGE_SENSOR_OPTIONAL_SERVICE_UUIDS,
   VOLTAGE_SENSOR_SERVICE_ID,
 } from "./PascoVoltageProtocol.js";
-import { DeviceSelectionCancelled, type TVoltageSensorDevice } from "./VoltageSensorDevice.js";
+import { CommandRefused, DeviceSelectionCancelled, type TVoltageSensorDevice } from "./VoltageSensorDevice.js";
 
 const READ_TIMEOUT_MS = 2000;
 
@@ -25,7 +26,8 @@ const COMMAND_TIMEOUT_MS = 1000;
 
 type PendingAck = {
   readonly command: AcknowledgedCommandValue;
-  readonly resolve: (accepted: boolean) => void;
+  /** Called with the device's status byte; 0 is success. */
+  readonly resolve: (status: number) => void;
 };
 
 export class BluetoothVoltageSensor implements TVoltageSensorDevice {
@@ -55,10 +57,10 @@ export class BluetoothVoltageSensor implements TVoltageSensorDevice {
       const packet = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
       const pending = this.pendingAck;
       if (pending) {
-        const accepted = decodeCommandAck(packet, pending.command);
-        if (accepted !== null) {
+        const status = decodeCommandStatus(packet, pending.command);
+        if (status !== null) {
           this.pendingAck = null;
-          pending.resolve(accepted);
+          pending.resolve(status);
           return;
         }
       }
@@ -160,26 +162,27 @@ export class BluetoothVoltageSensor implements TVoltageSensorDevice {
     }
 
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const acknowledged = new Promise<boolean>((resolve, reject) => {
+    const acknowledged = new Promise<number>((resolve, reject) => {
       timeoutId = setTimeout(() => {
         this.pendingAck = null;
         reject(new Error(`Timed out waiting for the voltage sensor to accept a ${description}`));
       }, COMMAND_TIMEOUT_MS);
       this.pendingAck = {
         command: command,
-        resolve: (accepted) => {
+        resolve: (status) => {
           if (timeoutId !== null) {
             clearTimeout(timeoutId);
           }
-          resolve(accepted);
+          resolve(status);
         },
       };
     });
 
     try {
       await this.write(this.sensorCommandCharacteristic, packet);
-      if (!(await acknowledged)) {
-        throw new Error(`Voltage sensor refused the ${description}`);
+      const status = await acknowledged;
+      if (status !== COMMAND_STATUS_OK) {
+        throw new CommandRefused(description, status);
       }
     } catch (error) {
       if (timeoutId !== null) {

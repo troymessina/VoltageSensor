@@ -197,11 +197,24 @@ export function setSamplePeriodCommand(periodMicroseconds: number): ArrayBuffer 
  * command, `false` when the device answered but refused this one.
  */
 export function decodeCommandAck(data: Uint8Array, command: AcknowledgedCommandValue): boolean | null {
+  const status = decodeCommandStatus(data, command);
+  return status === null ? null : status === STATUS_OK;
+}
+
+/**
+ * The status byte of [result, status, opcode], or null when the packet answers
+ * some other command. 0 is success; a refusal's nonzero value is reported
+ * as-is, because it may say why a command was refused.
+ */
+export function decodeCommandStatus(data: Uint8Array, command: AcknowledgedCommandValue): number | null {
   if (data.length < 3 || data[0] !== RESULT || data[2] !== command) {
     return null;
   }
-  return data[1] === STATUS_OK;
+  return data[1] ?? null;
 }
+
+/** The status a device sends when it accepts a command. */
+export const COMMAND_STATUS_OK = STATUS_OK;
 
 /** Starts the device sampling on its own clock, one channel, period in ms. */
 export function startSamplingCommand(periodMilliseconds: number): ArrayBuffer {

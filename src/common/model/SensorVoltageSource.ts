@@ -67,9 +67,12 @@ import {
   type VoltageRangeValue,
 } from "./hardware/PascoVoltageProtocol.js";
 import { UsbVoltageSensor } from "./hardware/UsbVoltageSensor.js";
-import { DeviceSelectionCancelled, type TVoltageSensorDevice } from "./hardware/VoltageSensorDevice.js";
+import { CommandRefused, DeviceSelectionCancelled, type TVoltageSensorDevice } from "./hardware/VoltageSensorDevice.js";
 import type { TVoltageSource } from "./VoltageSource.js";
 import { adjustReading } from "./voltageMeasurement.js";
+
+/** SET_RANGE values tried by `?rangeScan=true`. 1 is the known-good ±5 V, kept as a control. */
+const RANGE_SCAN_VALUES: readonly number[] = Array.from({ length: 16 }, (_, value) => value);
 
 /** The two ways a PS-3211 can be reached from a browser. */
 export const SensorTransport = {
@@ -107,6 +110,8 @@ export type SensorVoltageSourceOptions = {
   readonly usbAcceptAllDevices?: boolean;
   /** When true, logs every raw reading to the console. */
   readonly diagnosticsEnabledProperty?: TReadOnlyProperty<boolean>;
+  /** Hardware bring-up: try every range value at connect and report the result. */
+  readonly rangeScan?: boolean;
   /**
    * SET_RANGE value to send for ±30 V, or null (the default) to send none and
    * leave that range to PASCO's software. From `?range30Command=`.
@@ -173,6 +178,12 @@ export class SensorVoltageSource implements TVoltageSource {
   /** The last raw reading and its calibrated value, formatted for display. */
   public readonly diagnosticsProperty: Property<string>;
 
+  /**
+   * The outcome of the last range command, or of a range scan, for diagnostics.
+   * Kept apart from {@link diagnosticsProperty}, which every reading overwrites.
+   */
+  public readonly rangeCommandStatusProperty: Property<string>;
+
   private readonly availableProperty: BooleanProperty;
 
   private readonly pollIntervalMs: number;
@@ -181,6 +192,7 @@ export class SensorVoltageSource implements TVoltageSource {
   private readonly usbAcceptAllDevices: boolean;
   private readonly diagnosticsEnabledProperty: TReadOnlyProperty<boolean> | null;
   private readonly plusMinus30Command: number | null;
+  private readonly rangeScan: boolean;
   private readonly handleUnexpectedDisconnect: () => void;
   private readonly republishAdjusted: () => void;
   private readonly handleRangeChange: () => void;
@@ -218,6 +230,7 @@ export class SensorVoltageSource implements TVoltageSource {
     this.usbAcceptAllDevices = providedOptions?.usbAcceptAllDevices === true;
     this.diagnosticsEnabledProperty = providedOptions?.diagnosticsEnabledProperty ?? null;
     this.plusMinus30Command = providedOptions?.plusMinus30Command ?? null;
+    this.rangeScan = providedOptions?.rangeScan === true;
 
     this.sensorVoltageProperty = new NumberProperty(0, { units: "V" });
     this.hasReadingProperty = new BooleanProperty(false);
@@ -233,6 +246,7 @@ export class SensorVoltageSource implements TVoltageSource {
     this.deviceNameProperty = new Property<string | null>(null);
     this.availableProperty = new BooleanProperty(false);
     this.measurementListProperty = new Property<string>("");
+    this.rangeCommandStatusProperty = new Property<string>("");
     this.diagnosticsProperty = new Property<string>("");
 
     // An adjustment changes what the last reading *means*, so republish it at
@@ -329,9 +343,23 @@ export class SensorVoltageSource implements TVoltageSource {
       return;
     }
 
+    let scanSummary: string | null = null;
+    if (this.rangeScan) {
+      await this.scanRangeValues(device);
+      if (device !== this.device) {
+        return;
+      }
+      scanSummary = this.rangeCommandStatusProperty.value;
+    }
+
     // The range goes out before the first sample, so the first reading is
     // already decoded with the calibration the device is actually using.
+    // After a scan, this also puts the sensor back on the chosen range.
     await this.sendRangeCommand(device, this.rangeProperty.value);
+    if (scanSummary !== null) {
+      // The scan is what was asked for; the restore only follows it.
+      this.rangeCommandStatusProperty.value = `${scanSummary}. Then ${this.rangeCommandStatusProperty.value || "no range sent"}.`;
+    }
     if (device !== this.device) {
       return;
     }
@@ -357,6 +385,7 @@ export class SensorVoltageSource implements TVoltageSource {
     this.lastRawCount = null;
     this.rangeCommandFailedProperty.value = false;
     this.measurementListProperty.value = "";
+    this.rangeCommandStatusProperty.value = "";
     this.diagnosticsProperty.value = "";
     this.errorMessageProperty.value = null;
     this.connectionStateProperty.value = ConnectionState.DISCONNECTED;
@@ -441,15 +470,47 @@ export class SensorVoltageSource implements TVoltageSource {
     try {
       await device.setRange(value);
       this.rangeCommandFailedProperty.value = false;
-      this.diagnosticsProperty.value = `range command ${value} accepted`;
+      this.rangeCommandStatusProperty.value = `range command ${value} accepted`;
     } catch (error) {
       this.rangeCommandFailedProperty.value = true;
-      this.diagnosticsProperty.value = `range command ${value} failed: ${error instanceof Error ? error.message : error}`;
+      this.rangeCommandStatusProperty.value = `range command ${value} failed: ${error instanceof Error ? error.message : error}`;
       if (this.diagnosticsEnabledProperty?.value === true) {
         // biome-ignore lint/suspicious/noConsole: Explicit hardware bring-up diagnostics.
         console.warn("[VoltageSensor] range command failed", error);
       }
     }
+  }
+
+  /**
+   * Hardware bring-up: sends every value in {@link RANGE_SCAN_VALUES} as a
+   * SET_RANGE command and reports which the device accepts, refuses (with its
+   * status byte), or does not answer. Runs before sampling starts. The caller
+   * then sends the chosen range, which restores the sensor to it. Never rejects.
+   */
+  private async scanRangeValues(device: TVoltageSensorDevice): Promise<void> {
+    const accepted: number[] = [];
+    const refused: string[] = [];
+    const unanswered: number[] = [];
+    for (const value of RANGE_SCAN_VALUES) {
+      if (device !== this.device || !device.isConnected) {
+        return;
+      }
+      this.rangeCommandStatusProperty.value = `range scan: trying ${value}…`;
+      try {
+        await device.setRange(value);
+        accepted.push(value);
+      } catch (error) {
+        if (error instanceof CommandRefused) {
+          refused.push(`${value} (0x${error.status.toString(16).padStart(2, "0")})`);
+        } else {
+          unanswered.push(value);
+        }
+      }
+    }
+    const summary = `range scan — accepted: ${accepted.join(", ") || "none"}; refused: ${refused.join(", ") || "none"}; no answer: ${unanswered.join(", ") || "none"}`;
+    this.rangeCommandStatusProperty.value = summary;
+    // biome-ignore lint/suspicious/noConsole: Explicit hardware bring-up diagnostics.
+    console.info(`[VoltageSensor] ${summary}`);
   }
 
   /** The SET_RANGE value for a range on this link, or null when none is sent. */
@@ -680,6 +741,7 @@ export class SensorVoltageSource implements TVoltageSource {
     this.errorMessageProperty.dispose();
     this.deviceNameProperty.dispose();
     this.measurementListProperty.dispose();
+    this.rangeCommandStatusProperty.dispose();
     this.diagnosticsProperty.dispose();
     this.availableProperty.dispose();
   }

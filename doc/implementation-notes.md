@@ -116,10 +116,11 @@ pasco_python's. It still describes sensor 2031 (interface 1031, "Voltage") as
 A model's ±30 V range some other way, probably from the device itself. The
 same file's PS-4254 Wireless Voltage/Current sensor (2098) has the PS-3211A's
 voltage ranges and calibration (`32768,0,65536,5` / `…,30`) and gives
-`Values="pm5v:1:pm30v:6"`. So **6** is the leading candidate. It is sent only
-with `?range30Command=6` until it is confirmed on a PS-3211A. If it is
-accepted and reads correctly, make it the default in `main.ts` and drop the
-"set the range in PASCO software" note.
+`Values="pm5v:1:pm30v:6"`. So 6 was the leading candidate, but a PS-3211A **refuses 6** as well
+(2026-11-18). `?rangeScan=true` tries every value from 0 to 15 at connect and
+reports what the sensor does with each. If one is accepted and reads correctly
+as ±30 V, pass it as `plusMinus30Command` in `main.ts` and drop the "set the
+range in PASCO software" note.
 
 ### What the device reading goes through
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AcknowledgedCommand,
   decodeCommandAck,
+  decodeCommandStatus,
   decodeStreamPacket,
   decodeVoltageNotification,
   fullScaleVolts,
@@ -54,6 +55,12 @@ describe("PASCO voltage-sensor protocol", () => {
     // The PS-3211 datasheet: Values="pm5v:1:pm15v:3". On the PS-3211A, 3 is taken to select ±30 V.
     expect(bytes(setRangeCommand(VoltageRange.PLUS_MINUS_5V))).toEqual([0x28, 0x00, 0x00, 0x01]);
     expect(bytes(setRangeCommand(VoltageRange.PLUS_MINUS_30V))).toEqual([0x28, 0x00, 0x00, 0x03]);
+  });
+
+  it("reports the status byte of a refusal", () => {
+    expect(decodeCommandStatus(new Uint8Array([0xc0, 0x00, 0x28]), AcknowledgedCommand.SET_RANGE)).toBe(0);
+    expect(decodeCommandStatus(new Uint8Array([0xc0, 0x05, 0x28]), AcknowledgedCommand.SET_RANGE)).toBe(5);
+    expect(decodeCommandStatus(new Uint8Array([0xc0, 0x00, 0x05]), AcknowledgedCommand.SET_RANGE)).toBeNull();
   });
 
   it("separates an accepted command from a refused one", () => {

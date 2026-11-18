@@ -254,6 +254,13 @@ export class SensorPanel extends VoltageSensorPanel {
       visibleProperty: providedOptions.showDiagnosticsProperty,
       maxWidth: CONTROL_PANEL_WIDTH - SENSOR_PANEL_SETTINGS.MEASUREMENT_LIST_TEXT_MAX_WIDTH_OFFSET,
     });
+    // Its own line, because every reading rewrites the one below.
+    const rangeStatusText = new RichText(source.rangeCommandStatusProperty, {
+      font: MESSAGE_FONT,
+      fill: VoltageSensorColors.textColorProperty,
+      visibleProperty: providedOptions.showDiagnosticsProperty,
+      lineWrap: CONTROL_PANEL_WIDTH - SENSOR_PANEL_SETTINGS.ERROR_TEXT_LINE_WRAP_OFFSET,
+    });
     const rawReadingText = new Text(source.diagnosticsProperty, {
       font: MESSAGE_FONT,
       fill: VoltageSensorColors.textColorProperty,
@@ -280,6 +287,7 @@ export class SensorPanel extends VoltageSensorPanel {
           diagnosticsText,
           measurementListText,
           rawReadingText,
+          rangeStatusText,
         ],
       }),
       { minWidth: CONTROL_PANEL_WIDTH },

@@ -70,6 +70,16 @@ const voltageSensorQueryParameters = QueryStringMachine.getAll({
     isValidValue: (value: number) => Number.isInteger(value) && value >= 0 && value <= 255,
   },
 
+  /**
+   * Hardware bring-up: on connect, send every SET_RANGE value from 0 to 15 and
+   * report which the sensor accepts, refuses, or ignores, then restore the
+   * chosen range. Pair with `showDiagnostics=true` to see the result.
+   */
+  rangeScan: {
+    type: "boolean",
+    defaultValue: false,
+  },
+
   usbBringUp: {
     type: "string",
     defaultValue: "off",

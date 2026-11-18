@@ -21,7 +21,8 @@
 import {
   AcknowledgedCommand,
   type AcknowledgedCommandValue,
-  decodeCommandAck,
+  COMMAND_STATUS_OK,
+  decodeCommandStatus,
   decodeStreamPacket,
   decodeVoltageNotification,
   isResultPacket,
@@ -39,7 +40,7 @@ import {
   usbWriteFrame,
   VOLTAGE_SENSOR_SERVICE_ID,
 } from "./PascoVoltageProtocol.js";
-import { DeviceSelectionCancelled, type TVoltageSensorDevice } from "./VoltageSensorDevice.js";
+import { CommandRefused, DeviceSelectionCancelled, type TVoltageSensorDevice } from "./VoltageSensorDevice.js";
 
 /** PASCO scientific. The only filter SPARKvue's own WebUSB picker applies. */
 const PASCO_USB_VENDOR_ID = 0x0945;
@@ -519,12 +520,12 @@ export class UsbVoltageSensor implements TVoltageSensorDevice {
     description: string,
   ): Promise<void> {
     const body = await this.exchange(VOLTAGE_SENSOR_SERVICE_ID, packet);
-    const accepted = decodeCommandAck(body, command);
-    if (accepted === null) {
+    const status = decodeCommandStatus(body, command);
+    if (status === null) {
       throw new Error(`Voltage sensor did not answer the ${description}`);
     }
-    if (!accepted) {
-      throw new Error(`Voltage sensor refused the ${description}`);
+    if (status !== COMMAND_STATUS_OK) {
+      throw new CommandRefused(description, status);
     }
   }
 

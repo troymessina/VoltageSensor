@@ -10,6 +10,19 @@
 /** Thrown when the user dismisses the browser's device picker. Not a failure. */
 export class DeviceSelectionCancelled extends Error {}
 
+/**
+ * Thrown when the device answered a command and refused it, as opposed to not
+ * answering at all. Carries the device's status byte.
+ */
+export class CommandRefused extends Error {
+  public readonly status: number;
+
+  public constructor(description: string, status: number) {
+    super(`Voltage sensor refused the ${description} (status 0x${status.toString(16).padStart(2, "0")})`);
+    this.status = status;
+  }
+}
+
 export interface TVoltageSensorDevice {
   readonly isConnected: boolean;
 

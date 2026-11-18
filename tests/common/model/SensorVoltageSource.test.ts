@@ -11,6 +11,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConnectionState } from "../../../src/common/model/ConnectionState.js";
 import { RAW_ZERO_COUNT, VoltageRange } from "../../../src/common/model/hardware/PascoVoltageProtocol.js";
+import { CommandRefused } from "../../../src/common/model/hardware/VoltageSensorDevice.js";
 import { SensorTransport, SensorVoltageSource } from "../../../src/common/model/SensorVoltageSource.js";
 
 /** The raw count the device would report for `volts` on a range of ±`fullScale`. */
@@ -197,7 +198,7 @@ describe("SensorVoltageSource", () => {
       await vi.advanceTimersByTimeAsync(0);
       expect(device.rangesSent).toEqual([1, 6]);
       expect(source.rangeCommandFailedProperty.value).toBe(false);
-      expect(source.diagnosticsProperty.value).toBe("range command 6 accepted");
+      expect(source.rangeCommandStatusProperty.value).toBe("range command 6 accepted");
 
       device.refuseRange = true;
       source.rangeProperty.value = VoltageRange.PLUS_MINUS_5V;
@@ -289,6 +290,34 @@ describe("SensorVoltageSource", () => {
       source.reset();
       expect(source.changeSignProperty.value).toBe(false);
       expect(source.rangeProperty.value).toBe(VoltageRange.PLUS_MINUS_5V);
+      expect(source.isAvailableProperty.value).toBe(true);
+      source.dispose();
+    });
+  });
+
+  describe("range scan", () => {
+    it("reports which values are accepted, refused, or unanswered, then restores the range", async () => {
+      const source = new SensorVoltageSource({ rangeScan: true });
+      const connecting = source.connect(SensorTransport.USB);
+      const device = FakeStreamingDevice.latest as FakeStreamingDevice;
+      device.setRange = (value: number) => {
+        device.rangesSent.push(value);
+        if (value === 1 || value === 7) {
+          return Promise.resolve();
+        }
+        if (value === 0) {
+          return Promise.reject(new Error("Timed out"));
+        }
+        return Promise.reject(new CommandRefused("range change", 0x02));
+      };
+      await connecting;
+
+      const summary = source.rangeCommandStatusProperty.value;
+      expect(summary).toContain("accepted: 1, 7;");
+      expect(summary).toContain("refused: 2 (0x02), 3 (0x02)");
+      expect(summary).toContain("no answer: 0");
+      // Every value 0–15 tried, then the chosen ±5 V restored.
+      expect(device.rangesSent).toEqual([...Array.from({ length: 16 }, (_, v) => v), 1]);
       expect(source.isAvailableProperty.value).toBe(true);
       source.dispose();
     });
