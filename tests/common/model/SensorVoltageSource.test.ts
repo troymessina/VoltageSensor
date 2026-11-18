@@ -188,6 +188,26 @@ describe("SensorVoltageSource", () => {
       source.dispose();
     });
 
+    it("sends the ±30 V value it was given, and reports whether it was accepted", async () => {
+      const source = new SensorVoltageSource({ plusMinus30Command: 6 });
+      await source.connect(SensorTransport.USB);
+      const device = FakeStreamingDevice.latest as FakeStreamingDevice;
+
+      source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;
+      await vi.advanceTimersByTimeAsync(0);
+      expect(device.rangesSent).toEqual([1, 6]);
+      expect(source.rangeCommandFailedProperty.value).toBe(false);
+      expect(source.diagnosticsProperty.value).toBe("range command 6 accepted");
+
+      device.refuseRange = true;
+      source.rangeProperty.value = VoltageRange.PLUS_MINUS_5V;
+      source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;
+      await vi.advanceTimersByTimeAsync(0);
+      expect(device.rangesSent).toEqual([1, 6, 1, 6]);
+      expect(source.rangeCommandFailedProperty.value).toBe(true);
+      source.dispose();
+    });
+
     it("connects on ±30 V without sending a range", async () => {
       const source = new SensorVoltageSource();
       source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;

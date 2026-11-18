@@ -47,6 +47,8 @@ onReadyToLaunch(() => {
     usbProbeOnly: usbBringUp === "probe" || usbBringUp === "probeAll",
     usbAcceptAllDevices: usbBringUp === "all" || usbBringUp === "probeAll",
     diagnosticsEnabledProperty: simPreferences.showDiagnosticsProperty,
+    // 0 means "send nothing for ±30 V"; see voltageSensorQueryParameters.
+    plusMinus30Command: voltageSensorQueryParameters.range30Command || null,
   });
 
   const screens = [

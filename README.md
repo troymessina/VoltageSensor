@@ -83,6 +83,11 @@ If readings are off by a factor of 6, the range on the sensor and the range
 chosen in the app do not match. A yellow warning appears in the connection panel
 if the sensor ever refuses the ±5 V command.
 
+**Experimental:** `?range30Command=6` makes the app send a ±30 V command
+(the value PASCO uses for ±30 V on its PS-4254 sensor) when ±30 V is chosen.
+If the sensor accepts it, the yellow warning stays away and ±30 V works without
+PASCO software.
+
 For hardware bring-up, add `?showDiagnostics=true` to the URL. It shows the
 raw 16-bit count and the calibrated voltage of every reading, and logs each one
 to the browser console. See [AGENTS.md](AGENTS.md) for the other query

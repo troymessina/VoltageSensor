@@ -107,6 +107,20 @@ sensor to ±5 V, so choosing ±5 V and then ±30 V again requires setting the
 sensor back to 30 V in PASCO software. The note says this: "This app can switch
 the sensor to ±5 V, but not to ±30 V."
 
+### Where a ±30 V command value might come from
+
+SPARKvue's web build (sparkvue.pasco.com) loads `wasm/resourcesFiles.zip`.
+That archive holds `Sensors/datasheets.xml`, a newer datasheet than
+pasco_python's. It still describes sensor 2031 (interface 1031, "Voltage") as
+`pm5v:1:pm15v:3` and has no separate PS-3211A entry, so Capstone must learn the
+A model's ±30 V range some other way, probably from the device itself. The
+same file's PS-4254 Wireless Voltage/Current sensor (2098) has the PS-3211A's
+voltage ranges and calibration (`32768,0,65536,5` / `…,30`) and gives
+`Values="pm5v:1:pm30v:6"`. So **6** is the leading candidate. It is sent only
+with `?range30Command=6` until it is confirmed on a PS-3211A. If it is
+accepted and reads correctly, make it the default in `main.ts` and drop the
+"set the range in PASCO software" note.
+
 ### What the device reading goes through
 
 ```

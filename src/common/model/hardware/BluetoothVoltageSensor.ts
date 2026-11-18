@@ -15,7 +15,6 @@ import {
   VOLTAGE_SENSOR_ADVERTISED_NAME,
   VOLTAGE_SENSOR_OPTIONAL_SERVICE_UUIDS,
   VOLTAGE_SENSOR_SERVICE_ID,
-  type VoltageRangeValue,
 } from "./PascoVoltageProtocol.js";
 import { DeviceSelectionCancelled, type TVoltageSensorDevice } from "./VoltageSensorDevice.js";
 
@@ -134,8 +133,8 @@ export class BluetoothVoltageSensor implements TVoltageSensorDevice {
    * Switches the input range (±5 V / ±30 V). Rejects if the device refuses or stays silent;
    * the caller reports that, since the decode scale assumes the device obeyed.
    */
-  public async setRange(range: VoltageRangeValue): Promise<void> {
-    await this.sendAcknowledged(AcknowledgedCommand.SET_RANGE, setRangeCommand(range), "range change");
+  public async setRange(value: number): Promise<void> {
+    await this.sendAcknowledged(AcknowledgedCommand.SET_RANGE, setRangeCommand(value), "range change");
   }
 
   /** Reconfigures the device's periodic sampler. Single reads are unaffected. */

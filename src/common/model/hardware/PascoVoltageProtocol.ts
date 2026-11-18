@@ -110,8 +110,8 @@ const STATUS_OK = 0x00;
  *   - value 3 is refused, and the sensor stays where it was;
  *   - with the sensor set to its 30 V range in PASCO Capstone, decoding as
  *     ±30 V reads correctly.
- * PLUS_MINUS_30V is therefore only an identifier here. It is never sent; see
- * {@link canCommandRange}.
+ * The numbers below identify the two ranges in this app. What is actually sent
+ * for each is decided by {@link rangeCommandValue}.
  */
 export const VoltageRange = {
   PLUS_MINUS_5V: 1,
@@ -145,22 +145,29 @@ export function readVoltageSampleCommand(): ArrayBuffer {
   return toCommandBuffer([READ_ONE_SAMPLE, VOLTAGE_SENSOR_SAMPLE_BYTES]);
 }
 
-/** Asks the sensor to switch receiver range. Answered like any other command. */
-export function setRangeCommand(range: VoltageRangeValue): ArrayBuffer {
-  return toCommandBuffer([SET_RANGE, 0x00, RANGE_MEASUREMENT_ORDINAL, range]);
+/**
+ * Asks the sensor to switch range. `value` is the datasheet's range value (see
+ * {@link rangeCommandValue}). Answered like any other command.
+ */
+export function setRangeCommand(value: number): ArrayBuffer {
+  return toCommandBuffer([SET_RANGE, 0x00, RANGE_MEASUREMENT_ORDINAL, value]);
 }
 
 /**
- * Whether the app can put the sensor on this range itself.
+ * The SET_RANGE value to send for a range, or null when the app sends none.
  *
- * On a PS-3211A, SET_RANGE with value 1 is accepted and selects ±5 V. Value 3
- * is refused, and no value for ±30 V is known: the sensor reaches ±30 V only
- * when that range is set in PASCO's own software (Capstone or SPARKvue). So
- * ±30 V is never sent. Choosing it only changes how readings are decoded, and
- * the user is told to set the sensor's range to match.
+ * On a PS-3211A, value 1 is accepted and selects ±5 V. Value 3 (`pm15v` in the
+ * PS-3211 datasheet) is refused. SPARKvue's current datasheet gives no
+ * PS-3211A entry. Its PS-4254 Voltage/Current sensor has the same ±5 V / ±30 V
+ * calibration, and there `pm30v` is 6 (`Values="pm5v:1:pm30v:6"`). Until a
+ * value is confirmed on a PS-3211A, ±30 V is sent only when one is supplied
+ * with `?range30Command=`. Otherwise choosing ±30 V only changes the decode,
+ * and the user sets the sensor's range in PASCO software.
+ *
+ * @param plusMinus30Command - the value to try for ±30 V, or null to send none
  */
-export function canCommandRange(range: VoltageRangeValue): boolean {
-  return range === VoltageRange.PLUS_MINUS_5V;
+export function rangeCommandValue(range: VoltageRangeValue, plusMinus30Command: number | null): number | null {
+  return range === VoltageRange.PLUS_MINUS_5V ? 1 : plusMinus30Command;
 }
 
 /** Opcodes this client sends and then waits to see acknowledged. */

@@ -7,8 +7,6 @@
  * never reaches the model or the view.
  */
 
-import type { VoltageRangeValue } from "./PascoVoltageProtocol.js";
-
 /** Thrown when the user dismisses the browser's device picker. Not a failure. */
 export class DeviceSelectionCancelled extends Error {}
 
@@ -32,7 +30,8 @@ export interface TVoltageSensorDevice {
   /** One RawVoltage sample: the unsigned 16-bit count, before calibration. */
   readRawSample(): Promise<number>;
 
-  setRange(range: VoltageRangeValue): Promise<void>;
+  /** Sends SET_RANGE with the datasheet's range value; rejects if refused or unanswered. */
+  setRange(value: number): Promise<void>;
 
   /** Reconfigures the device's periodic sampler. Does not affect single reads. */
   setSamplePeriod(periodMicroseconds: number): Promise<void>;

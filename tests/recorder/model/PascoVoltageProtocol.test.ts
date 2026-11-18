@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   AcknowledgedCommand,
-  canCommandRange,
   decodeCommandAck,
   decodeStreamPacket,
   decodeVoltageNotification,
@@ -11,6 +10,7 @@ import {
   PASCO_CHARACTERISTIC,
   pascoUuid,
   RAW_ZERO_COUNT,
+  rangeCommandValue,
   rawCountToVolts,
   readVoltageSampleCommand,
   STREAM_ACK_INTERVAL,
@@ -163,9 +163,12 @@ describe("PASCO voltage-sensor protocol", () => {
     expect(fullScaleVolts(VoltageRange.PLUS_MINUS_30V)).toBe(30);
   });
 
-  it("commands only the ±5 V range, which a PS-3211A accepts", () => {
-    expect(canCommandRange(VoltageRange.PLUS_MINUS_5V)).toBe(true);
-    expect(canCommandRange(VoltageRange.PLUS_MINUS_30V)).toBe(false);
+  it("sends 1 for ±5 V, and for ±30 V only the value it is given", () => {
+    expect(rangeCommandValue(VoltageRange.PLUS_MINUS_5V, null)).toBe(1);
+    expect(rangeCommandValue(VoltageRange.PLUS_MINUS_30V, null)).toBeNull();
+    expect(rangeCommandValue(VoltageRange.PLUS_MINUS_30V, 6)).toBe(6);
+    // The PS-4254's pm30v value, framed as SET_RANGE.
+    expect(bytes(setRangeCommand(6))).toEqual([0x28, 0x00, 0x00, 0x06]);
   });
 
   it("flags the measured converter limits of each range as over range", () => {

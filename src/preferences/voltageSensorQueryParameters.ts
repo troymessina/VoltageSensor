@@ -57,6 +57,19 @@ const voltageSensorQueryParameters = QueryStringMachine.getAll({
    * sends nothing — the safe first look, since a PASCO sensor can be knocked off the
    * bus by transfers it dislikes. `all` drops the vendor filter from the picker.
    */
+  /**
+   * Hardware bring-up: the SET_RANGE value to send when ±30 V is chosen. By
+   * default (0) nothing is sent, and ±30 V must be set in PASCO software. The
+   * PS-3211 datasheet's value (3) is refused by a PS-3211A. 6 is the ±30 V value
+   * of PASCO's PS-4254 voltage channel and the first candidate to try, e.g.
+   * `?range30Command=6&showDiagnostics=true`.
+   */
+  range30Command: {
+    type: "number",
+    defaultValue: 0,
+    isValidValue: (value: number) => Number.isInteger(value) && value >= 0 && value <= 255,
+  },
+
   usbBringUp: {
     type: "string",
     defaultValue: "off",

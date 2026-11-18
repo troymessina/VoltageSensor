@@ -79,6 +79,7 @@ changing model or hardware code.
 | `?showDiagnostics=true` | Shows the raw count and calibrated volts of every reading, logs them to the console |
 | `?pollIntervalMs=20` | Sample period in ms (10–1000) — the poll period, or the device's own clock when streaming |
 | `?sensorStreaming=false` | Force polling on USB, which otherwise streams |
+| `?range30Command=6` | Send this SET_RANGE value when ±30 V is chosen (default 0 = send nothing). 6 is the PS-4254's `pm30v`; untested on a PS-3211A |
 | `?usbBringUp=probe` | Claim a USB device and report its descriptors without sending it anything |
 | `?screens=1` / `?screens=2` | Open straight onto one screen (SceneryStack) |
 

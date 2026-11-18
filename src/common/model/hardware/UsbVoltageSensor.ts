@@ -38,7 +38,6 @@ import {
   usbPacketBody,
   usbWriteFrame,
   VOLTAGE_SENSOR_SERVICE_ID,
-  type VoltageRangeValue,
 } from "./PascoVoltageProtocol.js";
 import { DeviceSelectionCancelled, type TVoltageSensorDevice } from "./VoltageSensorDevice.js";
 
@@ -359,8 +358,8 @@ export class UsbVoltageSensor implements TVoltageSensorDevice {
     return rawCount;
   }
 
-  public async setRange(range: VoltageRangeValue): Promise<void> {
-    await this.sendAcknowledged(AcknowledgedCommand.SET_RANGE, setRangeCommand(range), "range change");
+  public async setRange(value: number): Promise<void> {
+    await this.sendAcknowledged(AcknowledgedCommand.SET_RANGE, setRangeCommand(value), "range change");
   }
 
   /**
