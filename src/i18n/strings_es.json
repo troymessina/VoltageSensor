@@ -82,7 +82,6 @@
     "range": "Rango",
     "range5": "±5 V",
     "range30": "±30 V",
-    "rangeNote": "Ajusta el rango del sensor en el software de PASCO (Capstone o SPARKvue) y elige el mismo rango aquí. Esta aplicación puede cambiar el sensor a ±5 V, pero no a ±30 V.",
     "offsetPattern": "Ajuste de cero: {{offset}} V"
   },
   "preferences": {

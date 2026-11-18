@@ -62,7 +62,7 @@ From PASCO's datasheet (`pasco_python/src/pasco/datasheets.py`):
 | Channel | one, sensor 2031, GATT service 1 |
 | Sample | `RawVoltage`, 2 bytes, unsigned little-endian |
 | Calibration | `FactoryCal` through (32768, 0 V) and (65536, ±full scale) |
-| Ranges | `pm5v:1`, `pm15v:3` (PS-3211). On the PS-3211A, 1 → ±5 V works; ±30 V can only be set in PASCO software |
+| Ranges | `pm5v:1`, `pm15v:3` in the datasheets (PS-3211). The PS-3211A uses **1 → ±5 V, 2 → ±30 V** (found by scanning) |
 
 The packet layer (UUID scheme, `READ_ONE_SAMPLE`, the result arriving on device
 service 0, streaming, and the USB envelope) is identical across PASCO's
@@ -71,15 +71,14 @@ verified on a PS-3219.
 
 ### The range
 
-The datasheet describes the original PS-3211. Its `Voltage` measurement is a
+The datasheets describe the original PS-3211. Its `Voltage` measurement is a
 `Select` between the ±5 V and ±15 V calibrations, chosen by the range. The
-PS-3211A that this app targets reads ±30 V. pasco_python always picks the first input
-(±5 V) and never sends a range, so it cannot be followed blindly here. This app
-instead:
+PS-3211A that this app targets reads ±30 V. pasco_python always picks the first
+input (±5 V) and never sends a range, so it cannot be followed blindly here.
+This app:
 
-1. sends `SET_RANGE` (`[0x28, 0x00, 0x00, 1]`) when ±5 V is chosen, on connect
-   and on every change to it, halting sampling around the command. ±30 V is
-   never sent (see below);
+1. sends `SET_RANGE` (`[0x28, 0x00, 0x00, value]`) with the chosen range on
+   connect and on every change, halting sampling around the command;
 2. decodes every raw count with the same range's calibration;
 3. raises `rangeCommandFailedProperty` (and a visible warning) if the device
    does not acknowledge the command, because the decode is then only right if
@@ -89,38 +88,26 @@ instead:
    150 on ±5 V and 290 on ±30 V, not at 0). A pinned reading is otherwise
    indistinguishable from an ordinary 5.000 V.
 
-Hardware results on a PS-3211A:
+### How the PS-3211A's range values were found
+
+Neither datasheet has a PS-3211A entry. Tried on the hardware (2026-11-18):
 
 | What was tried | Result |
 |---|---|
-| Command 1, decoded as ±5 V | Accepted; reads correctly |
-| Command 3, decoded as ±15 V (the original datasheet) | Command refused; reads wrong |
-| Command 3, decoded as ±30 V | Command refused; sensor still on ±5 V, so reads 6× high |
-| Sensor set to 30 V in PASCO Capstone, decoded as ±30 V | Reads correctly |
+| Value 1, decoded as ±5 V | Accepted; reads correctly |
+| Value 3 (`pm15v` in the PS-3211 datasheet) | Refused |
+| Sensor set to 30 V in PASCO Capstone, decoded as ±30 V | Reads correctly, so the decode was right and only the command was missing |
+| Value 6 (`pm30v` of the PS-4254 Voltage/Current sensor in SPARKvue's datasheet, which has the same ±5 V / ±30 V calibration) | Refused |
+| `?rangeScan=true`: every value 0–15 | Accepted 1 and 2; all others refused with status 0x01 |
+| Value 2, decoded as ±30 V | Accepted; reads correctly, and switching ±5 V ↔ ±30 V works in both directions |
 
-The sensor's range cannot be raised to ±30 V from code, so the app never sends
-a ±30 V command (`canCommandRange`). Choosing ±30 V changes only the decode,
-and a note under the range menu tells the user to set the sensor's range in
-PASCO software to match. Because the ±30 V command is not sent, the yellow
-"did not confirm" warning no longer appears for it. The app can still lower the
-sensor to ±5 V, so choosing ±5 V and then ±30 V again requires setting the
-sensor back to 30 V in PASCO software. The note says this: "This app can switch
-the sensor to ±5 V, but not to ±30 V."
+SPARKvue's datasheet came from its web build: `sparkvue.pasco.com/wasm/resourcesFiles.zip`
+→ `Sensors/datasheets.xml`. It is newer than pasco_python's but still lists
+sensor 2031 as `pm5v:1:pm15v:3`. So PASCO's software must learn the A model's
+values some other way, probably from the sensor itself.
 
-### Where a ±30 V command value might come from
-
-SPARKvue's web build (sparkvue.pasco.com) loads `wasm/resourcesFiles.zip`.
-That archive holds `Sensors/datasheets.xml`, a newer datasheet than
-pasco_python's. It still describes sensor 2031 (interface 1031, "Voltage") as
-`pm5v:1:pm15v:3` and has no separate PS-3211A entry, so Capstone must learn the
-A model's ±30 V range some other way, probably from the device itself. The
-same file's PS-4254 Wireless Voltage/Current sensor (2098) has the PS-3211A's
-voltage ranges and calibration (`32768,0,65536,5` / `…,30`) and gives
-`Values="pm5v:1:pm30v:6"`. So 6 was the leading candidate, but a PS-3211A **refuses 6** as well
-(2026-11-18). `?rangeScan=true` tries every value from 0 to 15 at connect and
-reports what the sensor does with each. If one is accepted and reads correctly
-as ±30 V, pass it as `plusMinus30Command` in `main.ts` and drop the "set the
-range in PASCO software" note.
+`?rangeScan` is kept for bringing up another PASCO voltage sensor whose values
+are not known.
 
 ### What the device reading goes through
 

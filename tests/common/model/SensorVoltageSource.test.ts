@@ -157,64 +157,52 @@ describe("SensorVoltageSource", () => {
       expect(source.voltageProperty.value).toBeCloseTo(3, 3);
 
       source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;
-      // The same raw count means six times the voltage on the ±30 V range — the
-      // 6× error seen on a sensor still on ±5 V, which is why the panel tells
-      // the user to set the range in PASCO software.
+      // The same raw count means six times the voltage on the ±30 V range.
       expect(source.voltageProperty.value).toBeCloseTo(18, 2);
       source.dispose();
     });
 
-    it("never sends ±30 V, which the sensor refuses, and raises no warning for it", async () => {
+    it("sends ±30 V and back to ±5 V, the PS-3211A's values 2 and 1, resuming sampling each time", async () => {
       const { source, device } = await connectedSource();
-      device.refuseRange = true;
 
       source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;
       await vi.advanceTimersByTimeAsync(0);
-
-      expect(device.rangesSent).toEqual([VoltageRange.PLUS_MINUS_5V]);
+      expect(device.rangesSent).toEqual([1, 2]);
       expect(source.rangeCommandFailedProperty.value).toBe(false);
-      // Sampling was never paused for a command that was not sent.
+      expect(source.rangeCommandStatusProperty.value).toBe("range command 2 accepted");
+      expect(device.onSample).not.toBeNull();
+
+      source.rangeProperty.value = VoltageRange.PLUS_MINUS_5V;
+      await vi.advanceTimersByTimeAsync(0);
+      expect(device.rangesSent).toEqual([1, 2, 1]);
       expect(device.onSample).not.toBeNull();
       source.dispose();
     });
 
-    it("sends ±5 V again when switched back to it, and resumes sampling", async () => {
+    it("sends each queued change for the range it was queued for", async () => {
       const { source, device } = await connectedSource();
       source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;
       source.rangeProperty.value = VoltageRange.PLUS_MINUS_5V;
       await vi.advanceTimersByTimeAsync(0);
-
-      expect(device.rangesSent).toEqual([VoltageRange.PLUS_MINUS_5V, VoltageRange.PLUS_MINUS_5V]);
-      expect(device.onSample).not.toBeNull();
+      expect(device.rangesSent).toEqual([1, 2, 1]);
       source.dispose();
     });
 
-    it("sends the ±30 V value it was given, and reports whether it was accepted", async () => {
-      const source = new SensorVoltageSource({ plusMinus30Command: 6 });
-      await source.connect(SensorTransport.USB);
-      const device = FakeStreamingDevice.latest as FakeStreamingDevice;
-
-      source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;
-      await vi.advanceTimersByTimeAsync(0);
-      expect(device.rangesSent).toEqual([1, 6]);
-      expect(source.rangeCommandFailedProperty.value).toBe(false);
-      expect(source.rangeCommandStatusProperty.value).toBe("range command 6 accepted");
-
+    it("warns when the device refuses a range change", async () => {
+      const { source, device } = await connectedSource();
       device.refuseRange = true;
-      source.rangeProperty.value = VoltageRange.PLUS_MINUS_5V;
       source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;
       await vi.advanceTimersByTimeAsync(0);
-      expect(device.rangesSent).toEqual([1, 6, 1, 6]);
       expect(source.rangeCommandFailedProperty.value).toBe(true);
+      expect(source.rangeCommandStatusProperty.value).toContain("range command 2 failed");
       source.dispose();
     });
 
-    it("connects on ±30 V without sending a range", async () => {
+    it("connects on ±30 V by sending it before the first sample", async () => {
       const source = new SensorVoltageSource();
       source.rangeProperty.value = VoltageRange.PLUS_MINUS_30V;
       await source.connect(SensorTransport.USB);
-      expect(FakeStreamingDevice.latest?.rangesSent).toEqual([]);
-      expect(source.rangeCommandFailedProperty.value).toBe(false);
+      expect(FakeStreamingDevice.latest?.rangesSent).toEqual([2]);
       expect(source.isAvailableProperty.value).toBe(true);
       source.dispose();
     });
@@ -302,19 +290,19 @@ describe("SensorVoltageSource", () => {
       const device = FakeStreamingDevice.latest as FakeStreamingDevice;
       device.setRange = (value: number) => {
         device.rangesSent.push(value);
-        if (value === 1 || value === 7) {
+        if (value === 1 || value === 2) {
           return Promise.resolve();
         }
         if (value === 0) {
           return Promise.reject(new Error("Timed out"));
         }
-        return Promise.reject(new CommandRefused("range change", 0x02));
+        return Promise.reject(new CommandRefused("range change", 0x01));
       };
       await connecting;
 
       const summary = source.rangeCommandStatusProperty.value;
-      expect(summary).toContain("accepted: 1, 7;");
-      expect(summary).toContain("refused: 2 (0x02), 3 (0x02)");
+      expect(summary).toContain("accepted: 1, 2;");
+      expect(summary).toContain("refused: 3 (0x01), 4 (0x01)");
       expect(summary).toContain("no answer: 0");
       // Every value 0–15 tried, then the chosen ±5 V restored.
       expect(device.rangesSent).toEqual([...Array.from({ length: 16 }, (_, v) => v), 1]);

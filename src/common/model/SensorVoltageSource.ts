@@ -31,12 +31,11 @@
  *
  * ── The range is a device setting ─────────────────────────────────────────────
  * The sensor has two input ranges, ±5 V and ±30 V, and the raw count means
- * different volts in each. The chosen range always picks the calibration. Only
- * ±5 V is sent to the device (see {@link rangeCommandValue}), on connect and
- * whenever it is chosen. ±30 V is sent only when a value is supplied with
- * `?range30Command=`; otherwise it must be set in PASCO's own software, and the
- * options panel says so. If the ±5 V command is refused,
- * {@link rangeCommandFailedProperty} says so.
+ * different volts in each. The chosen range is sent to the device on connect
+ * and whenever it changes, and the same choice picks the calibration (see
+ * {@link VoltageRange} for the values). If the device refuses it,
+ * {@link rangeCommandFailedProperty} says so, because the reading is then only
+ * right if the device happens to be on the chosen range.
  * ±5 V is the default because it is the range verified on hardware. A reading
  * pinned at the end of the scale sets {@link overRangeProperty}.
  *
@@ -61,7 +60,6 @@ import { ConnectionState, type ConnectionStateValue } from "./ConnectionState.js
 import { BluetoothVoltageSensor } from "./hardware/BluetoothVoltageSensor.js";
 import {
   isRawCountAtLimit,
-  rangeCommandValue,
   rawCountToVolts,
   VoltageRange,
   type VoltageRangeValue,
@@ -112,11 +110,6 @@ export type SensorVoltageSourceOptions = {
   readonly diagnosticsEnabledProperty?: TReadOnlyProperty<boolean>;
   /** Hardware bring-up: try every range value at connect and report the result. */
   readonly rangeScan?: boolean;
-  /**
-   * SET_RANGE value to send for ±30 V, or null (the default) to send none and
-   * leave that range to PASCO's software. From `?range30Command=`.
-   */
-  readonly plusMinus30Command?: number | null;
 };
 
 export class SensorVoltageSource implements TVoltageSource {
@@ -191,7 +184,6 @@ export class SensorVoltageSource implements TVoltageSource {
   private readonly usbProbeOnly: boolean;
   private readonly usbAcceptAllDevices: boolean;
   private readonly diagnosticsEnabledProperty: TReadOnlyProperty<boolean> | null;
-  private readonly plusMinus30Command: number | null;
   private readonly rangeScan: boolean;
   private readonly handleUnexpectedDisconnect: () => void;
   private readonly republishAdjusted: () => void;
@@ -229,7 +221,6 @@ export class SensorVoltageSource implements TVoltageSource {
     this.usbProbeOnly = providedOptions?.usbProbeOnly === true;
     this.usbAcceptAllDevices = providedOptions?.usbAcceptAllDevices === true;
     this.diagnosticsEnabledProperty = providedOptions?.diagnosticsEnabledProperty ?? null;
-    this.plusMinus30Command = providedOptions?.plusMinus30Command ?? null;
     this.rangeScan = providedOptions?.rangeScan === true;
 
     this.sensorVoltageProperty = new NumberProperty(0, { units: "V" });
@@ -439,12 +430,6 @@ export class SensorVoltageSource implements TVoltageSource {
     if (device === null || !device.isConnected || this.usbProbeOnly || !this.availableProperty.value) {
       return;
     }
-    // A range the app cannot command needs no pause in sampling: only the
-    // decode changes.
-    if (this.commandValueFor(range) === null) {
-      this.rangeCommandFailedProperty.value = false;
-      return;
-    }
     const wasSampling = this.samplingRequested;
     if (wasSampling) {
       this.stopSampling();
@@ -456,17 +441,9 @@ export class SensorVoltageSource implements TVoltageSource {
     }
   }
 
-  /**
-   * Writes the chosen range to the device and records whether it was accepted.
-   * Never rejects. A range the device cannot be commanded to (±30 V) is not
-   * sent. Its refusal is known in advance, so it is not reported as a failure.
-   */
+  /** Writes a range to the device and records whether it was accepted. Never rejects. */
   private async sendRangeCommand(device: TVoltageSensorDevice, range: VoltageRangeValue): Promise<void> {
-    const value = this.commandValueFor(range);
-    if (value === null) {
-      this.rangeCommandFailedProperty.value = false;
-      return;
-    }
+    const value: number = range;
     try {
       await device.setRange(value);
       this.rangeCommandFailedProperty.value = false;
@@ -511,11 +488,6 @@ export class SensorVoltageSource implements TVoltageSource {
     this.rangeCommandStatusProperty.value = summary;
     // biome-ignore lint/suspicious/noConsole: Explicit hardware bring-up diagnostics.
     console.info(`[VoltageSensor] ${summary}`);
-  }
-
-  /** The SET_RANGE value for a range on this link, or null when none is sent. */
-  private commandValueFor(range: VoltageRangeValue): number | null {
-    return rangeCommandValue(range, this.plusMinus30Command);
   }
 
   // ── Sampling ────────────────────────────────────────────────────────────────

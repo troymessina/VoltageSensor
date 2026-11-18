@@ -102,20 +102,18 @@ const RESULT = 0xc0;
 const STATUS_OK = 0x00;
 
 /**
- * The sensor's two input ranges, as the values {@link SET_RANGE} takes.
+ * The PS-3211A's two input ranges, as the values {@link SET_RANGE} takes.
  *
- * PASCO's datasheet only describes the original PS-3211: `pm5v:1:pm15v:3`.
- * Tested on a PS-3211A, which reads ±30 V:
- *   - value 1 is accepted, selects ±5 V, and decodes correctly as ±5 V;
- *   - value 3 is refused, and the sensor stays where it was;
- *   - with the sensor set to its 30 V range in PASCO Capstone, decoding as
- *     ±30 V reads correctly.
- * The numbers below identify the two ranges in this app. What is actually sent
- * for each is decided by {@link rangeCommandValue}.
+ * PASCO's datasheets do not give these. pasco_python's and SPARKvue's list
+ * only the original PS-3211 (`pm5v:1:pm15v:3`), and SPARKvue's PS-4254 uses
+ * `pm30v:6`. Found on a PS-3211A instead (2026-11-18): sending every value
+ * from 0 to 15, it accepts only 1 and 2, and refuses the rest with status
+ * 0x01. Measured against a multimeter, 1 is ±5 V and 2 is ±30 V, and the app
+ * switches between them in both directions with no PASCO software involved.
  */
 export const VoltageRange = {
   PLUS_MINUS_5V: 1,
-  PLUS_MINUS_30V: 3,
+  PLUS_MINUS_30V: 2,
 } as const;
 
 export type VoltageRangeValue = (typeof VoltageRange)[keyof typeof VoltageRange];
@@ -146,28 +144,11 @@ export function readVoltageSampleCommand(): ArrayBuffer {
 }
 
 /**
- * Asks the sensor to switch range. `value` is the datasheet's range value (see
- * {@link rangeCommandValue}). Answered like any other command.
+ * Asks the sensor to switch range. `value` is a {@link VoltageRange}, or any
+ * raw value when probing (`?rangeScan`). Answered like any other command.
  */
 export function setRangeCommand(value: number): ArrayBuffer {
   return toCommandBuffer([SET_RANGE, 0x00, RANGE_MEASUREMENT_ORDINAL, value]);
-}
-
-/**
- * The SET_RANGE value to send for a range, or null when the app sends none.
- *
- * On a PS-3211A, value 1 is accepted and selects ±5 V. Value 3 (`pm15v` in the
- * PS-3211 datasheet) is refused. SPARKvue's current datasheet gives no
- * PS-3211A entry. Its PS-4254 Voltage/Current sensor has the same ±5 V / ±30 V
- * calibration, and there `pm30v` is 6 (`Values="pm5v:1:pm30v:6"`). Until a
- * value is confirmed on a PS-3211A, ±30 V is sent only when one is supplied
- * with `?range30Command=`. Otherwise choosing ±30 V only changes the decode,
- * and the user sets the sensor's range in PASCO software.
- *
- * @param plusMinus30Command - the value to try for ±30 V, or null to send none
- */
-export function rangeCommandValue(range: VoltageRangeValue, plusMinus30Command: number | null): number | null {
-  return range === VoltageRange.PLUS_MINUS_5V ? 1 : plusMinus30Command;
 }
 
 /** Opcodes this client sends and then waits to see acknowledged. */

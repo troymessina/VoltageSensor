@@ -43,14 +43,13 @@ changing model or hardware code.
 - **The range is both a device command and the calibration.** The raw count is
   unsigned 16-bit; `volts = (raw − 32768) / 32768 × fullScale`. Sending the
   wrong range, or decoding with the wrong one, is a silent constant-factor
-  error. The datasheet describes the original PS-3211 (`pm5v:1`, `pm15v:3`).
-  On a PS-3211A (verified on hardware): command 1 is accepted and decodes
-  correctly as ±5 V; command 3 is **refused**; ±30 V can only be set in PASCO
-  Capstone or SPARKvue, and then decodes correctly as ±30 V. So `canCommandRange`
-  sends ±5 V only. Choosing ±30 V changes the decode alone, and a note under the
-  range menu tells the user to set the sensor to match. `rangeCommandFailedProperty`
-  (the yellow warning) now means the ±5 V command was refused, which should not
-  happen.
+  error. The datasheets describe the original PS-3211 (`pm5v:1`, `pm15v:3`).
+  The PS-3211A's values were found by `?rangeScan`: it accepts **1 (±5 V)**
+  and **2 (±30 V)** and refuses everything else with status 0x01. Both are
+  verified against a multimeter, switching in both directions.
+  `VoltageRange` holds those values, so a range's ID is its command.
+  `rangeCommandFailedProperty` (the yellow warning) means the sensor refused a
+  range change.
 - **A pinned converter looks like a real reading.** On ±5 V, 9 V reads as
   5.000 V. `overRangeProperty` (raw count past per-range limits measured on a PS-3211A; see `OVER_RANGE_LIMITS`)
   turns the meter digits red and shows a warning in the connection panel.
@@ -79,8 +78,7 @@ changing model or hardware code.
 | `?showDiagnostics=true` | Shows the raw count and calibrated volts of every reading, logs them to the console |
 | `?pollIntervalMs=20` | Sample period in ms (10–1000) — the poll period, or the device's own clock when streaming |
 | `?sensorStreaming=false` | Force polling on USB, which otherwise streams |
-| `?range30Command=N` | Send SET_RANGE N when ±30 V is chosen (default 0 = send nothing). 3 and 6 are both refused by a PS-3211A |
-| `?rangeScan=true` | On connect, try SET_RANGE 0–15 and report accepted / refused (with status byte) / unanswered in the connection panel (with `showDiagnostics`) and console, then restore the chosen range |
+| `?rangeScan=true` | On connect, try SET_RANGE 0–15 and report accepted / refused (with status byte) / unanswered in the connection panel (with `showDiagnostics`) and console, then restore the chosen range. How the PS-3211A's values (1, 2) were found |
 | `?usbBringUp=probe` | Claim a USB device and report its descriptors without sending it anything |
 | `?screens=1` / `?screens=2` | Open straight onto one screen (SceneryStack) |
 

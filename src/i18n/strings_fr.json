@@ -82,7 +82,6 @@
     "range": "Calibre",
     "range5": "±5 V",
     "range30": "±30 V",
-    "rangeNote": "Réglez le calibre du capteur dans le logiciel PASCO (Capstone ou SPARKvue) et choisissez le même calibre ici. Cette application peut passer le capteur en ±5 V, mais pas en ±30 V.",
     "offsetPattern": "Décalage du zéro : {{offset}} V"
   },
   "preferences": {
